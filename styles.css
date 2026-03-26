@@ -34,23 +34,29 @@ body {
   box-shadow: 0 0 20px rgba(0,0,0,0.1); 
 }
 
+/* Modificado para alinear el logo horizontalmente al costado del texto */
 header {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   z-index: 10;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
+  flex-direction: row; /* Asegura la disposición horizontal (lado a lado) */
+  align-items: center; /* Centra verticalmente el logo y el texto */
+  justify-content: center; /* Centra todo el grupo horizontalmente en la cabecera */
+  gap: 12px; /* Espacio entre el logo y el texto */
 }
-header img {
+
+header .logo-header {
   height: 45px;
   width: auto;
+  object-fit: contain;
 }
+
 header .title-container {
-  text-align: left;
+  text-align: left; /* Mantiene las líneas de texto alineadas a la izquierda dentro de su contenedor */
 }
+
 header h1 { font-size: 1.4rem; color: var(--text); margin-bottom: 2px;}
 header p { font-size: 0.8rem; color: var(--muted); }
 
