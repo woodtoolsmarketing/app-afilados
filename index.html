@@ -10,7 +10,7 @@
 
 <div id="app">
   <header>
-    <img src="Diseño_sin_título__24_-removebg-preview.png" alt="Logo Wood Tools" class="logo-header" onerror="this.style.display='none'">
+    <img src="imagenes/Diseño_sin_título__24_-removebg-preview.png" alt="Logo Wood Tools" class="logo-header" onerror="this.style.display='none'">
     <div class="title-container">
       <h1>Wood Tools SRL</h1>
       <p id="header-subtitle">Servicio de Afilado & Reparación</p>
@@ -19,8 +19,12 @@
 
   <div id="screen-client" class="screen active">
     <h2>¿Ya sos cliente nuestro?</h2>
-    <button class="btn" onclick="setClient(true)">✔️ Sí, ya soy cliente</button>
-    <button class="btn" onclick="setClient(false)">✖️ No, soy nuevo</button>
+    <button class="btn" onclick="setClient(true)">
+      <span class="icon-check">✔</span> Sí, ya soy cliente
+    </button>
+    <button class="btn" onclick="setClient(false)">
+      <span class="icon-cross">✖</span> No, soy nuevo
+    </button>
   </div>
 
   <div id="screen-client-data" class="screen">
