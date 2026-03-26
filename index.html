@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>App Servicio - Wood Tools SRL</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <img src="Diseño_sin_título__24_-removebg-preview.png" alt="Logo Wood Tools" onerror="this.style.display='none'">
+    <div class="title-container">
+      <h1>Wood Tools SRL</h1>
+      <p id="header-subtitle">Servicio de Afilado & Reparación</p>
+    </div>
+  </header>
+
+  <div id="screen-client" class="screen active">
+    <h2>¿Ya sos cliente nuestro?</h2>
+    <button class="btn" onclick="setClient(true)">✔️ Sí, ya soy cliente</button>
+    <button class="btn" onclick="setClient(false)">✖️ No, soy nuevo</button>
+  </div>
+
+  <div id="screen-client-data" class="screen">
+    <h2 id="client-title">Ingresá tus datos</h2>
+    <div id="client-fields"></div>
+    <div id="client-action"></div>
+  </div>
+
+  <div id="screen-welcome" class="screen">
+    <div style="text-align: center; margin-top: 30px;">
+      <h2 style="font-size: 1.8rem; margin-bottom: 10px;">¡Bienvenido/a!</h2>
+      <p style="color: var(--muted); margin-bottom: 30px;">Identidad verificada correctamente.</p>
+      
+      <div style="background: var(--surface); border: 2px dashed var(--border); padding: 20px; border-radius: 12px; margin-bottom: 40px;">
+        <p style="font-size: 1rem; color: var(--muted); margin-bottom: 5px;">Tu número de cuenta es:</p>
+        <h3 id="display-client-number" style="font-size: 1.8rem; color: var(--accent);">Nro de cliente: 0000</h3>
+      </div>
+
+      <button class="btn btn-primary" onclick="goTo('screen-service')">Crear Nuevo Pedido</button>
+    </div>
+  </div>
+
+  <div id="screen-service" class="screen">
+    <h2>¿Qué servicio necesitás?</h2>
+    <button class="btn" onclick="setService('Afilar')">⚙️ Afilar herramienta</button>
+    <button class="btn" onclick="setService('Reparar')">🔧 Reparar herramienta</button>
+    <button class="btn btn-secondary" style="margin-top: 20px;" onclick="goTo('screen-chat')">💬 Hablar con vendedor</button>
+  </div>
+
+  <div id="screen-tools" class="screen">
+    <h2 id="tools-title">Seleccioná la herramienta</h2>
+    <div class="tools-grid">
+      <div class="btn-tool-card" onclick="selectTool('SC Franzoi')">
+        <span class="tool-icon">🔵</span>
+        <span class="tool-name">SC Franzoi</span>
+      </div>
+      <div class="btn-tool-card" onclick="selectTool('SC Melamina / Madera')">
+        <span class="tool-icon">🟡</span>
+        <span class="tool-name">SC Melamina / Madera</span>
+      </div>
+      <div class="btn-tool-card" onclick="selectTool('SC + Incisor')">
+        <span class="tool-icon">🟣</span>
+        <span class="tool-name">SC + Incisor</span>
+      </div>
+      <div class="btn-tool-card" onclick="selectTool('Fresas')">
+        <span class="tool-icon">🔧</span>
+        <span class="tool-name">Fresas</span>
+      </div>
+      <div class="btn-tool-card" onclick="selectTool('Cuchillas')">
+        <span class="tool-icon">🗡️</span>
+        <span class="tool-name">Cuchillas</span>
+      </div>
+      <div class="btn-tool-card" onclick="selectTool('Mechas')">
+        <span class="tool-icon">🔩</span>
+        <span class="tool-name">Mechas</span>
+      </div>
+      <div class="btn-tool-card" onclick="selectTool('Sierra sin fin')">
+        <span class="tool-icon">〰️</span>
+        <span class="tool-name">Sierra sin fin</span>
+      </div>
+      <div class="btn-tool-card" onclick="selectTool('Cabezales')">
+        <span class="tool-icon">⚙️</span>
+        <span class="tool-name">Cabezales</span>
+      </div>
+      <div class="btn-tool-card" onclick="selectTool('Diamante')">
+        <span class="tool-icon">💎</span>
+        <span class="tool-name">Diamante</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-quantity" class="screen">
+    <h2>¿Qué cantidad?</h2>
+    <p style="text-align:center; color:var(--muted); margin-bottom: 20px;" id="selected-tool-name"></p>
+    <div class="form-group">
+      <input type="number" id="input-qty" class="qty-input" min="1" value="1">
+    </div>
+    <button class="btn btn-primary" onclick="saveQuantity()">Confirmar Cantidad</button>
+  </div>
+
+  <div id="screen-logistics" class="screen">
+    <h2>Logística de Retiro</h2>
+    <div class="form-group">
+      <label>Dirección de retiro / Localidad</label>
+      <input type="text" id="input-address" placeholder="Ej: Av. Mitre 1000, Avellaneda">
+    </div>
+    <button class="btn btn-primary" onclick="checkZone()">Verificar Zona</button>
+  </div>
+
+  <div id="screen-payment" class="screen">
+    <div class="alert alert-info" id="zone-alert">El afilador pasa por tu zona.</div>
+    
+    <h2>Facturación y Pago</h2>
+    <div class="form-group">
+      <label>¿Requiere Factura?</label>
+      <select id="input-invoice">
+        <option value="Sí, con factura">Sí, con factura</option>
+        <option value="No, sin factura">No, sin factura</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label>Método de Pago</label>
+      <select id="input-paymethod">
+        <option value="Efectivo">Efectivo</option>
+        <option value="Transferencia">Transferencia</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="finishOrder()">Confirmar Pedido vía WhatsApp</button>
+  </div>
+
+  <div id="screen-success" class="screen">
+    <div style="text-align: center; margin-top: 40px;">
+      <h1 style="font-size: 4rem; margin-bottom: 20px;">✅</h1>
+      <h2 style="font-size: 1.8rem;">¡Pedido Enviado!</h2>
+      <p style="color: var(--muted); line-height: 1.6;">
+        Se ha abierto tu WhatsApp con los detalles del pedido.<br><br>
+        Nos comunicaremos para avisarte cuándo pasa el afilador.
+      </p>
+      <button class="btn btn-secondary" style="margin-top: 40px;" onclick="location.reload()">Volver al Inicio</button>
+    </div>
+  </div>
+
+  <div id="screen-chat" class="screen">
+    <h2>Motivo de contacto</h2>
+    <button class="btn" onclick="startChat('Cotización afilado/reparación')">💬 Cotización afilado/reparación</button>
+    <button class="btn" onclick="startChat('Tiempos de tardanza')">⏱ Tiempos de tardanza</button>
+    <button class="btn" onclick="startChat('Aviso de entrega')">📦 Aviso de entrega</button>
+    <button class="btn" onclick="startChat('Dirección alternativa')">📍 Dirección alternativa</button>
+    <button class="btn" onclick="startChat('Otras consultas')">❓ Otros</button>
+  </div>
+
+  <div class="bottom-bar" id="bottom-bar" style="display: none;">
+    <button class="btn-back" onclick="goBack()">← Volver atrás</button>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
