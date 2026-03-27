@@ -10,10 +10,9 @@ let orderData = {
   coordinates: null
 };
 
-// Arreglo para manejar múltiples productos
 let cart = [];
-
 let historyStack = ['screen-client'];
+let mapInitialized = false;
 
 function goTo(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -26,17 +25,16 @@ function goTo(screenId) {
   let hideBackBtn = ['screen-client', 'screen-welcome', 'screen-success'].includes(screenId);
   document.getElementById('bottom-bar').style.display = hideBackBtn ? 'none' : 'flex';
 
-  // Renderizar mapa e historial si entra a la logística
   if(screenId === 'screen-logistics') {
     renderAddressHistory();
     setTimeout(() => {
-      if(map) {
-        google.maps.event.trigger(map, 'resize');
-        if(marker.getPosition()) {
-          map.setCenter(marker.getPosition());
-        }
+      if(!mapInitialized) {
+          initMap();
+      } else if(map) {
+         google.maps.event.trigger(map, 'resize');
+         if(marker && marker.position) map.setCenter(marker.position);
       }
-    }, 100);
+    }, 200);
   }
 }
 
@@ -113,12 +111,10 @@ function selectTool(toolName) {
   goTo('screen-quantity');
 }
 
-// SISTEMA DE CARRITO
 function saveQuantity() {
   let qty = parseInt(document.getElementById('input-qty').value);
   if(qty < 1) { alert("Ingresá una cantidad válida"); return; }
   
-  // Agregar al arreglo del carrito
   cart.push({
     service: orderData.service,
     tool: orderData.tool,
@@ -155,107 +151,104 @@ function renderCart() {
 function removeFromCart(index) {
   cart.splice(index, 1);
   renderCart();
-  if(cart.length === 0) {
-    goTo('screen-service');
-  }
+  if(cart.length === 0) goTo('screen-service');
 }
 
-// GOOGLE MAPS Y UBICACIÓN
+function goToLogistics() {
+  if(cart.length === 0) { alert("Tu carrito está vacío"); return; }
+  goTo('screen-logistics');
+}
+
+// ----------------------------------------------------
+// GOOGLE MAPS CLÁSICO Y ESTABLE
+// ----------------------------------------------------
 let map, marker, geocoder, autocomplete;
 
-function initMap() {
-  // Centro por defecto: Avellaneda, Buenos Aires
-  const defaultLoc = { lat: -34.662, lng: -58.365 }; 
-  
-  // Solo iniciar si la API está cargada
-  if(typeof google === 'undefined') return;
-
-  map = new google.maps.Map(document.getElementById("map-container"), {
-    zoom: 13, 
-    center: defaultLoc,
-    disableDefaultUI: true
-  });
-  
-  marker = new google.maps.Marker({ map: map, position: defaultLoc, draggable: true });
-  geocoder = new google.maps.Geocoder();
-
-  const input = document.getElementById("input-address");
-  
-  // Opciones para restringir la búsqueda a Argentina
-  const options = {
-    componentRestrictions: { country: "ar" },
-    fields: ["formatted_address", "geometry", "name"],
-    strictBounds: false,
-  };
-
-  if (google.maps.places && google.maps.places.Autocomplete) {
-    autocomplete = new google.maps.places.Autocomplete(input, options);
-    
-    // Al seleccionar una dirección del menú desplegable
-    autocomplete.addListener("place_changed", () => {
-      const place = autocomplete.getPlace();
-      if (place.geometry) {
-        map.setCenter(place.geometry.location);
-        map.setZoom(16);
-        marker.setPosition(place.geometry.location);
-        orderData.coordinates = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
-        if (place.formatted_address) {
-            input.value = place.formatted_address;
-        }
-      } else {
-          // Respaldo si no seleccionan del dropdown
-          geocodeAddress(input.value);
-      }
-    });
+async function initMap() {
+  if (typeof google === 'undefined' || !google.maps) {
+      console.error("Google Maps API no está cargada.");
+      return;
   }
 
-  // Permitir mover el marcador arrastrándolo
-  marker.addListener("dragend", () => {
-    orderData.coordinates = { lat: marker.getPosition().lat(), lng: marker.getPosition().lng() };
-    geocodePosition(marker.getPosition());
-  });
+  try {
+      const { Map } = await google.maps.importLibrary("maps");
+      const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+      const { Geocoder } = await google.maps.importLibrary("geocoding");
+      
+      const defaultLoc = { lat: -34.662, lng: -58.365 }; // Avellaneda
 
-  // Permitir click en cualquier lugar del mapa para mover el marcador
-  map.addListener("click", (event) => {
-    const clickedLoc = event.latLng;
-    marker.setPosition(clickedLoc);
-    orderData.coordinates = { lat: clickedLoc.lat(), lng: clickedLoc.lng() };
-    geocodePosition(clickedLoc);
-  });
-}
+      map = new Map(document.getElementById("map-container"), {
+        zoom: 14, 
+        center: defaultLoc, 
+        disableDefaultUI: true,
+        mapId: "DEMO_MAP_ID" 
+      });
 
-// Búsqueda de texto directo como respaldo
-function geocodeAddress(address) {
-    geocoder.geocode({ address: address, componentRestrictions: { country: 'AR' } }, (results, status) => {
-        if (status === "OK") {
-            map.setCenter(results[0].geometry.location);
-            map.setZoom(16);
-            marker.setPosition(results[0].geometry.location);
-            document.getElementById("input-address").value = results[0].formatted_address;
-            orderData.coordinates = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
-        }
-    });
-}
-
-function getUserLocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((position) => {
-      const pos = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      };
-      if(map) {
-        map.setCenter(pos);
-        map.setZoom(16);
-        marker.setPosition(pos);
+      marker = new AdvancedMarkerElement({
+        map: map,
+        position: defaultLoc,
+        gmpDraggable: true
+      });
+      
+      geocoder = new Geocoder();
+      
+      const input = document.getElementById("input-address");
+      
+      // Inicializar el Autocompletador Clásico (Estable)
+      if (google.maps.places && google.maps.places.Autocomplete) {
+          autocomplete = new google.maps.places.Autocomplete(input, {
+              componentRestrictions: { country: "ar" },
+              fields: ["formatted_address", "geometry", "name"],
+              strictBounds: false
+          });
+          
+          autocomplete.addListener("place_changed", () => {
+              const place = autocomplete.getPlace();
+              
+              if (place.geometry) {
+                  map.setCenter(place.geometry.location);
+                  map.setZoom(16);
+                  marker.position = place.geometry.location;
+                  
+                  orderData.coordinates = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
+                  orderData.address = place.formatted_address || input.value;
+                  
+                  if (place.formatted_address) {
+                      input.value = place.formatted_address;
+                  }
+              } else {
+                  geocodeAddress(input.value);
+              }
+          });
+          
+          // Prevenir que el "Enter" envíe formularios accidentalmente si el dropdown está abierto
+          input.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                  e.preventDefault();
+                  geocodeAddress(input.value);
+              }
+          });
+      } else {
+          console.error("La librería places no está disponible en la API de Google Maps");
       }
-      orderData.coordinates = pos;
-      geocodePosition(pos);
-    }, () => {
-      alert("No se pudo obtener la ubicación. Revisá los permisos de tu navegador.");
-    });
-  } else {
-    alert("Tu navegador no soporta geolocalización.");
+
+      map.addListener("click", (event) => {
+        const clickedLoc = event.latLng;
+        marker.position = clickedLoc;
+        map.panTo(clickedLoc);
+        orderData.coordinates = { lat: clickedLoc.lat(), lng: clickedLoc.lng() };
+        geocodePosition(clickedLoc);
+      });
+
+      marker.addListener("dragend", () => {
+        orderData.coordinates = { lat: marker.position.lat, lng: marker.position.lng };
+        geocodePosition(marker.position);
+      });
+
+      mapInitialized = true;
+
+  } catch(e) {
+      console.error("Hubo un error inicializando el mapa: ", e);
   }
 }
 
@@ -264,24 +257,55 @@ function geocodePosition(pos) {
   geocoder.geocode({ location: pos }, (results, status) => {
     if (status === "OK" && results[0]) {
       document.getElementById("input-address").value = results[0].formatted_address;
+      orderData.address = results[0].formatted_address;
     }
   });
 }
 
-// MANEJO DE HISTORIAL DE DIRECCIONES
+function geocodeAddress(address) {
+    if(!geocoder) return;
+    const fullSearch = address.includes("Argentina") ? address : `${address}, Buenos Aires, Argentina`;
+
+    geocoder.geocode({ address: fullSearch }, (results, status) => {
+        if (status === "OK" && results[0]) {
+            const loc = results[0].geometry.location;
+            map.setCenter(loc);
+            map.setZoom(16);
+            marker.position = loc;
+            
+            document.getElementById("input-address").value = results[0].formatted_address;
+            orderData.address = results[0].formatted_address;
+            orderData.coordinates = { lat: loc.lat(), lng: loc.lng() };
+        } else {
+            alert("No encontramos esa dirección. Intentá ubicar el pin en el mapa.");
+        }
+    });
+}
+
+function getUserLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
+      if(map) {
+        map.setCenter(pos); map.setZoom(16); marker.position = pos;
+      }
+      orderData.coordinates = pos;
+      geocodePosition(pos);
+    }, () => { alert("No se pudo obtener la ubicación. Revisá los permisos de tu navegador o dispositivo."); });
+  } else {
+    alert("Tu navegador no soporta geolocalización.");
+  }
+}
+
+// ----------------------------------------------------
+// MANEJO DE HISTORIAL LOCAL DE DIRECCIONES
+// ----------------------------------------------------
 function saveAddressToHistory(address, coords) {
-  if (!address) return;
+  if (!address || address.trim() === "") return;
   let history = JSON.parse(localStorage.getItem('addressHistoryWT')) || [];
-  
-  // Evitar duplicados (lo quita de donde estaba para ponerlo primero)
   history = history.filter(item => item.address !== address);
-  
-  // Agregar al inicio de la lista
   history.unshift({ address, coords });
-  
-  // Guardar solo las últimas 3 direcciones
-  if (history.length > 3) history.pop();
-  
+  if (history.length > 3) history.pop(); 
   localStorage.setItem('addressHistoryWT', JSON.stringify(history));
 }
 
@@ -300,11 +324,11 @@ function renderAddressHistory() {
       btn.onclick = () => {
         document.getElementById('input-address').value = item.address;
         orderData.address = item.address;
-        if(item.coords && map) {
-          const pos = new google.maps.LatLng(item.coords.lat, item.coords.lng);
-          map.setCenter(pos);
+        
+        if(item.coords && typeof google !== 'undefined' && map && marker) {
+          map.setCenter(item.coords);
           map.setZoom(16);
-          marker.setPosition(pos);
+          marker.position = item.coords;
           orderData.coordinates = item.coords;
         }
       };
@@ -315,22 +339,15 @@ function renderAddressHistory() {
   }
 }
 
-// Iniciar mapa en la carga de la página si es posible
-window.onload = () => {
-  if(typeof google !== 'undefined') initMap();
-};
-
-function goToLogistics() {
-  if(cart.length === 0) { alert("Tu carrito está vacío"); return; }
-  goTo('screen-logistics');
-}
-
 function checkZone() {
   let address = document.getElementById('input-address').value;
-  if(!address) { alert("Por favor ingresá tu dirección o usá tu ubicación actual en el mapa."); return; }
-  orderData.address = address;
   
-  // Guardamos la dirección en el historial del celular
+  if(!address || address.trim() === "") { 
+      alert("Por favor ingresá tu dirección o ubicá el pin en el mapa."); 
+      return; 
+  }
+  
+  orderData.address = address;
   saveAddressToHistory(orderData.address, orderData.coordinates);
   
   let alertBox = document.getElementById('zone-alert');
@@ -341,11 +358,9 @@ function checkZone() {
     alertBox.className = "alert alert-info";
     alertBox.innerText = "¡Perfecto! El afilador pasa por tu zona.";
   }
-  
   goTo('screen-payment');
 }
 
-// SIMULACIÓN DE CONEXIÓN CON SOFTWARE DE VENDEDORES (BACKEND)
 function finishOrder() {
   let btn = document.getElementById('btn-finish');
   btn.innerText = "Enviando al sistema...";
@@ -354,31 +369,20 @@ function finishOrder() {
   let invoice = document.getElementById('input-invoice').value;
   let payment = document.getElementById('input-paymethod').value;
   
-  // Objeto JSON listo para ser consumido por un backend/API
   let payloadBackend = {
-    cliente: {
-      tipo: orderData.isClient ? "Existente" : "Nuevo",
-      numero: orderData.clientNumber || "N/A"
-    },
+    cliente: { tipo: orderData.isClient ? "Existente" : "Nuevo", numero: orderData.clientNumber || "N/A" },
     pedidos: cart,
-    logistica: {
-      direccion: orderData.address,
-      coordenadas: orderData.coordinates
-    },
-    facturacion: {
-      requiere_factura: invoice,
-      metodo_pago: payment
-    }
+    logistica: { direccion: orderData.address, coordenadas: orderData.coordinates },
+    facturacion: { requiere_factura: invoice, metodo_pago: payment }
   };
 
   console.log("--> ENVIANDO DATOS A LA API DEL SISTEMA COMERCIAL <--");
   console.log(JSON.stringify(payloadBackend, null, 2));
 
-  // Simulamos el tiempo de respuesta del servidor (1.5 segundos)
   setTimeout(() => {
     btn.innerText = "Confirmar Pedido (Enviar a Sistema)";
     btn.disabled = false;
-    cart = []; // Vaciar carrito
+    cart = []; 
     goTo('screen-success');
   }, 1500);
 }
@@ -387,6 +391,5 @@ function startChat(motivo) {
   let textMessage = `Hola, necesito consultar sobre: *${motivo}*`;
   let encodedMessage = encodeURIComponent(textMessage);
   let url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-  
   window.open(url, '_blank');
 }
