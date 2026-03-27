@@ -321,3 +321,30 @@ h2 {
   text-decoration: underline;
   font-weight: 500;
 }
+
+/* BOTONES DE HISTORIAL DE DIRECCIONES */
+.history-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dark);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(139, 21, 21, 0.1);
+}
+.history-btn span {
+  color: var(--muted);
+  font-size: 1rem;
+}

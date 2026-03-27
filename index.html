@@ -142,13 +142,18 @@
     <div class="form-group">
       <label>Dirección de retiro / Localidad</label>
       <input type="text" id="input-address" placeholder="Ej: Av. Mitre 1000, Avellaneda">
+      
+      <div id="address-history" style="display: none; margin-top: 10px;">
+        <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; font-weight: 500;">Direcciones recientes:</p>
+        <div id="history-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
     </div>
 
     <button class="btn btn-secondary" style="font-size: 0.9rem; padding: 12px; margin-bottom: 16px;" onclick="getUserLocation()">
       📍 Utilizar mi ubicación actual
     </button>
 
-    <div id="map-container" style="width: 100%; height: 200px; border-radius: 12px; overflow: hidden; margin-bottom: 20px; border: 1px solid var(--border); background: #e2e8f0;"></div>
+    <div id="map-container" style="width: 100%; height: 200px; border-radius: 12px; overflow: hidden; margin-bottom: 20px; border: 1px solid var(--border); background: #e2e8f0; cursor: crosshair;"></div>
 
     <button class="btn btn-primary" onclick="checkZone()">Confirmar Ubicación</button>
   </div>

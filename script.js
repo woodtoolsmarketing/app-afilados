@@ -26,12 +26,15 @@ function goTo(screenId) {
   let hideBackBtn = ['screen-client', 'screen-welcome', 'screen-success'].includes(screenId);
   document.getElementById('bottom-bar').style.display = hideBackBtn ? 'none' : 'flex';
 
-  // Renderizar mapa si entra a la logística
+  // Renderizar mapa e historial si entra a la logística
   if(screenId === 'screen-logistics') {
+    renderAddressHistory();
     setTimeout(() => {
       if(map) {
         google.maps.event.trigger(map, 'resize');
-        map.setCenter(marker.getPosition());
+        if(marker.getPosition()) {
+          map.setCenter(marker.getPosition());
+        }
       }
     }, 100);
   }
@@ -164,7 +167,7 @@ function initMap() {
   // Centro por defecto: Avellaneda, Buenos Aires
   const defaultLoc = { lat: -34.662, lng: -58.365 }; 
   
-  // Solo iniciar si la API está cargada (evita errores si falta la Key)
+  // Solo iniciar si la API está cargada
   if(typeof google === 'undefined') return;
 
   map = new google.maps.Map(document.getElementById("map-container"), {
@@ -177,23 +180,61 @@ function initMap() {
   geocoder = new google.maps.Geocoder();
 
   const input = document.getElementById("input-address");
-  autocomplete = new google.maps.places.Autocomplete(input);
   
-  autocomplete.addListener("place_changed", () => {
-    const place = autocomplete.getPlace();
-    if (place.geometry) {
-      map.setCenter(place.geometry.location);
-      map.setZoom(15);
-      marker.setPosition(place.geometry.location);
-      orderData.coordinates = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
-    }
-  });
+  // Opciones para restringir la búsqueda a Argentina
+  const options = {
+    componentRestrictions: { country: "ar" },
+    fields: ["formatted_address", "geometry", "name"],
+    strictBounds: false,
+  };
 
-  // Permitir mover el marcador manualmente
+  if (google.maps.places && google.maps.places.Autocomplete) {
+    autocomplete = new google.maps.places.Autocomplete(input, options);
+    
+    // Al seleccionar una dirección del menú desplegable
+    autocomplete.addListener("place_changed", () => {
+      const place = autocomplete.getPlace();
+      if (place.geometry) {
+        map.setCenter(place.geometry.location);
+        map.setZoom(16);
+        marker.setPosition(place.geometry.location);
+        orderData.coordinates = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
+        if (place.formatted_address) {
+            input.value = place.formatted_address;
+        }
+      } else {
+          // Respaldo si no seleccionan del dropdown
+          geocodeAddress(input.value);
+      }
+    });
+  }
+
+  // Permitir mover el marcador arrastrándolo
   marker.addListener("dragend", () => {
     orderData.coordinates = { lat: marker.getPosition().lat(), lng: marker.getPosition().lng() };
     geocodePosition(marker.getPosition());
   });
+
+  // Permitir click en cualquier lugar del mapa para mover el marcador
+  map.addListener("click", (event) => {
+    const clickedLoc = event.latLng;
+    marker.setPosition(clickedLoc);
+    orderData.coordinates = { lat: clickedLoc.lat(), lng: clickedLoc.lng() };
+    geocodePosition(clickedLoc);
+  });
+}
+
+// Búsqueda de texto directo como respaldo
+function geocodeAddress(address) {
+    geocoder.geocode({ address: address, componentRestrictions: { country: 'AR' } }, (results, status) => {
+        if (status === "OK") {
+            map.setCenter(results[0].geometry.location);
+            map.setZoom(16);
+            marker.setPosition(results[0].geometry.location);
+            document.getElementById("input-address").value = results[0].formatted_address;
+            orderData.coordinates = { lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() };
+        }
+    });
 }
 
 function getUserLocation() {
@@ -227,6 +268,53 @@ function geocodePosition(pos) {
   });
 }
 
+// MANEJO DE HISTORIAL DE DIRECCIONES
+function saveAddressToHistory(address, coords) {
+  if (!address) return;
+  let history = JSON.parse(localStorage.getItem('addressHistoryWT')) || [];
+  
+  // Evitar duplicados (lo quita de donde estaba para ponerlo primero)
+  history = history.filter(item => item.address !== address);
+  
+  // Agregar al inicio de la lista
+  history.unshift({ address, coords });
+  
+  // Guardar solo las últimas 3 direcciones
+  if (history.length > 3) history.pop();
+  
+  localStorage.setItem('addressHistoryWT', JSON.stringify(history));
+}
+
+function renderAddressHistory() {
+  let history = JSON.parse(localStorage.getItem('addressHistoryWT')) || [];
+  const container = document.getElementById('address-history');
+  const list = document.getElementById('history-list');
+  
+  if (history.length > 0) {
+    container.style.display = 'block';
+    list.innerHTML = '';
+    history.forEach(item => {
+      let btn = document.createElement('div');
+      btn.className = 'history-btn';
+      btn.innerHTML = `<span>🕒</span> ${item.address}`;
+      btn.onclick = () => {
+        document.getElementById('input-address').value = item.address;
+        orderData.address = item.address;
+        if(item.coords && map) {
+          const pos = new google.maps.LatLng(item.coords.lat, item.coords.lng);
+          map.setCenter(pos);
+          map.setZoom(16);
+          marker.setPosition(pos);
+          orderData.coordinates = item.coords;
+        }
+      };
+      list.appendChild(btn);
+    });
+  } else {
+    container.style.display = 'none';
+  }
+}
+
 // Iniciar mapa en la carga de la página si es posible
 window.onload = () => {
   if(typeof google !== 'undefined') initMap();
@@ -241,6 +329,9 @@ function checkZone() {
   let address = document.getElementById('input-address').value;
   if(!address) { alert("Por favor ingresá tu dirección o usá tu ubicación actual en el mapa."); return; }
   orderData.address = address;
+  
+  // Guardamos la dirección en el historial del celular
+  saveAddressToHistory(orderData.address, orderData.coordinates);
   
   let alertBox = document.getElementById('zone-alert');
   if(address.toLowerCase().includes("interior") || address.toLowerCase().includes("ruta") || address.toLowerCase().includes("provincia")) {
