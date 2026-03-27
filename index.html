@@ -10,11 +10,14 @@
 
 <div id="app">
   <header>
-    <img src="imagenes/Diseño_sin_título__24_-removebg-preview.png" alt="Logo Wood Tools" class="logo-header" onerror="this.style.display='none'">
-    <div class="title-container">
-      <h1>Wood Tools SRL</h1>
-      <p id="header-subtitle">Servicio de Afilado & Reparación</p>
+    <div class="header-content">
+      <img src="imagenes/Diseño_sin_título__24_-removebg-preview.png" alt="Logo Wood Tools" class="logo-header" onerror="this.style.display='none'">
+      <div class="title-container">
+        <h1>Wood Tools SRL</h1>
+        <p id="header-subtitle">Servicio de Afilado & Reparación</p>
+      </div>
     </div>
+    <div id="header-client-number" class="header-client-number"></div>
   </header>
 
   <div id="screen-client" class="screen active">
@@ -38,9 +41,8 @@
       <h2 style="font-size: 1.8rem; margin-bottom: 10px;">¡Bienvenido/a!</h2>
       <p style="color: var(--muted); margin-bottom: 30px;">Identidad verificada correctamente.</p>
       
-      <div style="background: var(--surface); border: 2px dashed var(--border); padding: 20px; border-radius: 12px; margin-bottom: 40px;">
-        <p style="font-size: 1rem; color: var(--muted); margin-bottom: 5px;">Tu número de cuenta es:</p>
-        <h3 id="display-client-number" style="font-size: 1.8rem; color: var(--accent);">Nro de cliente: 0000</h3>
+      <div style="background: var(--surface); border: 2px dashed var(--accent); padding: 20px; border-radius: 12px; margin-bottom: 40px;">
+        <h3 id="display-client-number" style="font-size: 1.4rem; color: var(--accent);">Nro de cliente: 0000</h3>
       </div>
 
       <button class="btn btn-primary" onclick="goTo('screen-service')">Crear Nuevo Pedido</button>
@@ -49,50 +51,66 @@
 
   <div id="screen-service" class="screen">
     <h2>¿Qué servicio necesitás?</h2>
-    <button class="btn" onclick="setService('Afilar')">⚙️ Afilar herramienta</button>
-    <button class="btn" onclick="setService('Reparar')">🔧 Reparar herramienta</button>
-    <button class="btn btn-secondary" style="margin-top: 20px;" onclick="goTo('screen-chat')">💬 Hablar con vendedor</button>
+    <button class="btn btn-service" onclick="setService('Afilar')">
+      <span class="icon-service">⚙️</span> Afilar herramienta
+    </button>
+    <button class="btn btn-service" onclick="setService('Reparar')">
+      <span class="icon-service">🔧</span> Reparar herramienta
+    </button>
+    <button class="btn btn-teal" style="margin-top: 20px;" onclick="goTo('screen-chat')">
+      <span style="margin-right: 8px;">💬</span> Hablar con vendedor
+    </button>
   </div>
 
   <div id="screen-tools" class="screen">
     <h2 id="tools-title">Seleccioná la herramienta</h2>
     <div class="tools-grid">
+      
       <div class="btn-tool-card" onclick="selectTool('SC Franzoi')">
-        <span class="tool-icon">🔵</span>
+        <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">SC Franzoi</span>
       </div>
+      
       <div class="btn-tool-card" onclick="selectTool('SC Melamina / Madera')">
-        <span class="tool-icon">🟡</span>
+        <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">SC Melamina / Madera</span>
       </div>
+      
       <div class="btn-tool-card" onclick="selectTool('SC + Incisor')">
-        <span class="tool-icon">🟣</span>
+        <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">SC + Incisor</span>
       </div>
+      
       <div class="btn-tool-card" onclick="selectTool('Fresas')">
-        <span class="tool-icon">🔧</span>
+        <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">Fresas</span>
       </div>
+      
       <div class="btn-tool-card" onclick="selectTool('Cuchillas')">
-        <span class="tool-icon">🗡️</span>
+        <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">Cuchillas</span>
       </div>
+      
       <div class="btn-tool-card" onclick="selectTool('Mechas')">
-        <span class="tool-icon">🔩</span>
+        <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">Mechas</span>
       </div>
+      
       <div class="btn-tool-card" onclick="selectTool('Sierra sin fin')">
-        <span class="tool-icon">〰️</span>
+        <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">Sierra sin fin</span>
       </div>
+      
       <div class="btn-tool-card" onclick="selectTool('Cabezales')">
-        <span class="tool-icon">⚙️</span>
+        <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">Cabezales</span>
       </div>
+      
       <div class="btn-tool-card" onclick="selectTool('Diamante')">
-        <span class="tool-icon">💎</span>
+        <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">Diamante</span>
       </div>
+
     </div>
   </div>
 
@@ -144,7 +162,7 @@
         Se ha abierto tu WhatsApp con los detalles del pedido.<br><br>
         Nos comunicaremos para avisarte cuándo pasa el afilador.
       </p>
-      <button class="btn btn-secondary" style="margin-top: 40px;" onclick="location.reload()">Volver al Inicio</button>
+      <button class="btn btn-primary" style="margin-top: 40px;" onclick="location.reload()">Nuevo Pedido</button>
     </div>
   </div>
 

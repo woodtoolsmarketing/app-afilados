@@ -71,10 +71,18 @@ function loginUser() {
   let dni = document.getElementById('login-dni').value;
   if(!dni || dni.length < 6) { alert("Por favor, ingresá un DNI válido"); return; }
   
+  // Asignamos el número de cliente
   let lastDigits = dni.slice(-4);
   orderData.clientNumber = `WT-${lastDigits}`;
   
+  // Mostramos en la pantalla de Bienvenida
   document.getElementById('display-client-number').innerText = `Nro de cliente: ${orderData.clientNumber}`;
+  
+  // Aparece flotando en la cabecera (Header)
+  let headerClientNumber = document.getElementById('header-client-number');
+  headerClientNumber.innerText = `Nro de cliente: ${orderData.clientNumber}`;
+  headerClientNumber.style.display = 'block';
+
   goTo('screen-welcome');
 }
 

@@ -1,16 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap');
 
 :root {
-  /* Tema Claro idéntico al mockup */
-  --bg: #f4f6f9; /* Gris muy clarito para el fondo */
-  --surface: #ffffff; /* Blanco puro para tarjetas/header */
-  --accent: #f0a500;
-  --accent-hover: #e09900;
+  --bg: #f4f6f9; 
+  --surface: #ffffff; 
+  /* ROJO OSCURO WOOD TOOLS */
+  --accent: #8b1515; 
+  --accent-hover: #6b0f0f;
   --accent2: #3ecfcf;
-  --text-dark: #1e293b; /* Azul oscuro/negro para títulos y texto principal */
+  --text-dark: #1e293b; 
   --text: #334155; 
-  --muted: #64748b; /* Gris para subtítulos */
-  --border: #cbd5e1; /* Borde sutil */
+  --muted: #64748b; 
+  --border: #cbd5e1; 
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Outfit', sans-serif; }
@@ -35,12 +35,15 @@ body {
   box-shadow: 0 0 20px rgba(0,0,0,0.05); 
 }
 
-/* Cabecera blanca con borde sutil */
 header {
-  padding: 16px 20px;
+  position: relative;
+  padding: 16px 20px 30px 20px; 
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   z-index: 10;
+}
+
+.header-content {
   display: flex;
   flex-direction: row; 
   align-items: center; 
@@ -70,6 +73,16 @@ header p {
   font-weight: 400;
 }
 
+.header-client-number {
+  display: none;
+  position: absolute;
+  bottom: 8px;
+  left: 20px;
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
 .screen {
   display: none;
   flex: 1;
@@ -84,7 +97,6 @@ header p {
   to { opacity: 1; transform: translateX(0); }
 }
 
-/* Títulos principales */
 h2 { 
   font-size: 1.5rem; 
   margin-bottom: 24px; 
@@ -93,7 +105,6 @@ h2 {
   font-weight: 800;
 }
 
-/* Botones estilo mockup */
 .btn {
   display: flex;
   align-items: center;
@@ -114,28 +125,45 @@ h2 {
 .btn:active { transform: scale(0.98); }
 .btn:hover { border-color: #94a3b8; }
 
-/* Íconos violetas para la primera pantalla */
 .icon-check, .icon-cross {
-  color: #6366f1; /* Color índigo/violeta */
+  color: #6366f1; 
   font-size: 1.2rem;
   margin-right: 12px;
   font-weight: 800;
 }
 
-/* Botones principales de acción */
+.btn-service {
+  justify-content: flex-start;
+}
+.icon-service {
+  filter: grayscale(0.5) hue-rotate(220deg) opacity(0.6);
+  font-size: 1.3rem;
+  margin-right: 12px;
+}
+
+.btn-teal {
+  background: var(--accent2); 
+  color: #000;
+  border: none;
+  text-align: center;
+  font-weight: 800;
+  justify-content: center; 
+}
+.btn-teal:hover { background: #2cb5b5; border: none;}
+
 .btn-primary { 
   background: var(--accent); 
-  color: #000; 
+  color: #ffffff; 
   border: none; 
   text-align: center; 
   font-weight: 700; 
   margin-top: 24px;
-  display: block; /* Vuelve a centrar texto */
+  display: block;
 }
 .btn-primary:hover { background: var(--accent-hover); border: none; }
 .btn-secondary { background: var(--accent2); color: #000; border: none; text-align: center; font-weight: 700; display: block; }
 
-/* Grilla de Herramientas */
+/* GRILLA EN 2 COLUMNAS PARA PRODUCTOS */
 .tools-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -143,9 +171,10 @@ h2 {
   padding-bottom: 20px;
 }
 
+/* Tarjeta cuadrada de producto */
 .btn-tool-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Apila imagen y texto verticalmente */
   align-items: center;
   justify-content: center;
   background: var(--surface);
@@ -155,17 +184,29 @@ h2 {
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  aspect-ratio: 1 / 1; 
+  aspect-ratio: 1 / 1; /* Hace que sean cuadradas */
 }
 .btn-tool-card:active { transform: scale(0.95); }
 .btn-tool-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(240, 165, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(139, 21, 21, 0.15); /* Sombra roja sutil */
 }
 
-.btn-tool-card .tool-icon {
-  font-size: 2.5rem; 
-  margin-bottom: 12px;
+/* Espacio para la foto del producto */
+.tool-img {
+  width: 65px;
+  height: 65px;
+  object-fit: cover;
+  border-radius: 8px; /* Cambialo a 50% si en el futuro quieres fotos redondas */
+  background-color: #e2e8f0; 
+  border: 1px solid var(--border);
+  margin-bottom: 12px; /* Margen hacia abajo */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-align: center;
 }
 
 .btn-tool-card .tool-name {
@@ -175,7 +216,6 @@ h2 {
   color: var(--text-dark);
 }
 
-/* Formularios */
 .form-group { margin-bottom: 18px; }
 .form-group label { display: block; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 8px; font-weight: 600;}
 .form-group input[type="text"], 
@@ -189,7 +229,7 @@ h2 {
   color: var(--text-dark);
   font-size: 1rem;
 }
-.form-group input:focus, .form-group select:focus { outline: none; box-shadow: 0 0 0 2px rgba(240, 165, 0, 0.2); }
+.form-group input:focus, .form-group select:focus { outline: none; box-shadow: 0 0 0 2px rgba(139, 21, 21, 0.2); }
 
 .checkbox-group {
   display: flex;
