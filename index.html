@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>App Servicio - Wood Tools SRL</title>
 <link rel="stylesheet" href="styles.css">
+<script src="https://maps.googleapis.com/maps/api/js?key=TU_API_KEY_AQUI&libraries=places"></script>
 </head>
 <body>
 
@@ -91,11 +92,6 @@
         <span class="tool-name">Cuchillas</span>
       </div>
       
-      <div class="btn-tool-card" onclick="selectTool('Mechas')">
-        <img src="" alt="Foto" class="tool-img">
-        <span class="tool-name">Mechas</span>
-      </div>
-      
       <div class="btn-tool-card" onclick="selectTool('Sierra sin fin')">
         <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">Sierra sin fin</span>
@@ -105,10 +101,20 @@
         <img src="" alt="Foto" class="tool-img">
         <span class="tool-name">Cabezales</span>
       </div>
-      
-      <div class="btn-tool-card" onclick="selectTool('Diamante')">
+
+      <div class="btn-tool-card" onclick="selectTool('SC Diamante')">
         <img src="" alt="Foto" class="tool-img">
-        <span class="tool-name">Diamante</span>
+        <span class="tool-name">SC Diamante</span>
+      </div>
+
+      <div class="btn-tool-card" onclick="selectTool('Mechas Diamante')">
+        <img src="" alt="Foto" class="tool-img">
+        <span class="tool-name">Mechas Diamante</span>
+      </div>
+
+      <div class="btn-tool-card" onclick="selectTool('Mechas Standard')">
+        <img src="" alt="Foto" class="tool-img">
+        <span class="tool-name">Mechas Standard</span>
       </div>
 
     </div>
@@ -116,20 +122,35 @@
 
   <div id="screen-quantity" class="screen">
     <h2>¿Qué cantidad?</h2>
-    <p style="text-align:center; color:var(--muted); margin-bottom: 20px;" id="selected-tool-name"></p>
+    <p style="text-align:center; color:var(--text-dark); font-weight:600; font-size:1.1rem; margin-bottom: 20px;" id="selected-tool-name"></p>
     <div class="form-group">
       <input type="number" id="input-qty" class="qty-input" min="1" value="1">
     </div>
-    <button class="btn btn-primary" onclick="saveQuantity()">Confirmar Cantidad</button>
+    <button class="btn btn-primary" onclick="saveQuantity()">Agregar al carrito</button>
+  </div>
+
+  <div id="screen-cart" class="screen">
+    <h2>Tu Pedido</h2>
+    <div id="cart-container" class="cart-container"></div>
+    <button class="btn btn-secondary" onclick="goTo('screen-service')" style="margin-top: 10px;">+ Agregar otra herramienta</button>
+    <button class="btn btn-primary" onclick="goToLogistics()">Continuar con el envío</button>
   </div>
 
   <div id="screen-logistics" class="screen">
     <h2>Logística de Retiro</h2>
+    
     <div class="form-group">
       <label>Dirección de retiro / Localidad</label>
       <input type="text" id="input-address" placeholder="Ej: Av. Mitre 1000, Avellaneda">
     </div>
-    <button class="btn btn-primary" onclick="checkZone()">Verificar Zona</button>
+
+    <button class="btn btn-secondary" style="font-size: 0.9rem; padding: 12px; margin-bottom: 16px;" onclick="getUserLocation()">
+      📍 Utilizar mi ubicación actual
+    </button>
+
+    <div id="map-container" style="width: 100%; height: 200px; border-radius: 12px; overflow: hidden; margin-bottom: 20px; border: 1px solid var(--border); background: #e2e8f0;"></div>
+
+    <button class="btn btn-primary" onclick="checkZone()">Confirmar Ubicación</button>
   </div>
 
   <div id="screen-payment" class="screen">
@@ -151,18 +172,18 @@
         <option value="Transferencia">Transferencia</option>
       </select>
     </div>
-    <button class="btn btn-primary" onclick="finishOrder()">Confirmar Pedido vía WhatsApp</button>
+    <button class="btn btn-primary" id="btn-finish" onclick="finishOrder()">Confirmar Pedido (Enviar a Sistema)</button>
   </div>
 
   <div id="screen-success" class="screen">
     <div style="text-align: center; margin-top: 40px;">
       <h1 style="font-size: 4rem; margin-bottom: 20px;">✅</h1>
-      <h2 style="font-size: 1.8rem;">¡Pedido Enviado!</h2>
+      <h2 style="font-size: 1.8rem;">¡Pedido Confirmado!</h2>
       <p style="color: var(--muted); line-height: 1.6;">
-        Se ha abierto tu WhatsApp con los detalles del pedido.<br><br>
-        Nos comunicaremos para avisarte cuándo pasa el afilador.
+        Los datos fueron enviados correctamente al sistema comercial de Wood Tools SRL.<br><br>
+        Nos comunicaremos a la brevedad para coordinar.
       </p>
-      <button class="btn btn-primary" style="margin-top: 40px;" onclick="location.reload()">Nuevo Pedido</button>
+      <button class="btn btn-primary" style="margin-top: 40px;" onclick="location.reload()">Realizar otro pedido</button>
     </div>
   </div>
 

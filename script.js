@@ -6,8 +6,12 @@ let orderData = {
   service: '',
   tool: '',
   quantity: 1,
-  address: ''
+  address: '',
+  coordinates: null
 };
+
+// Arreglo para manejar múltiples productos
+let cart = [];
 
 let historyStack = ['screen-client'];
 
@@ -21,6 +25,16 @@ function goTo(screenId) {
   
   let hideBackBtn = ['screen-client', 'screen-welcome', 'screen-success'].includes(screenId);
   document.getElementById('bottom-bar').style.display = hideBackBtn ? 'none' : 'flex';
+
+  // Renderizar mapa si entra a la logística
+  if(screenId === 'screen-logistics') {
+    setTimeout(() => {
+      if(map) {
+        google.maps.event.trigger(map, 'resize');
+        map.setCenter(marker.getPosition());
+      }
+    }, 100);
+  }
 }
 
 function goBack() {
@@ -41,7 +55,7 @@ function setClient(isClient) {
     title.innerText = "Ingresá tus datos";
     fieldsDiv.innerHTML = `
       <div class="form-group">
-        <label>DNI</label>
+        <label>DNI o CUIT</label>
         <input type="text" id="login-dni" placeholder="Ingresá tu DNI...">
       </div>
       <div class="form-group">
@@ -71,14 +85,11 @@ function loginUser() {
   let dni = document.getElementById('login-dni').value;
   if(!dni || dni.length < 6) { alert("Por favor, ingresá un DNI válido"); return; }
   
-  // Asignamos el número de cliente
   let lastDigits = dni.slice(-4);
   orderData.clientNumber = `WT-${lastDigits}`;
   
-  // Mostramos en la pantalla de Bienvenida
   document.getElementById('display-client-number').innerText = `Nro de cliente: ${orderData.clientNumber}`;
   
-  // Aparece flotando en la cabecera (Header)
   let headerClientNumber = document.getElementById('header-client-number');
   headerClientNumber.innerText = `Nro de cliente: ${orderData.clientNumber}`;
   headerClientNumber.style.display = 'block';
@@ -94,25 +105,145 @@ function setService(serviceType) {
 
 function selectTool(toolName) {
   orderData.tool = toolName;
-  document.getElementById('selected-tool-name').innerText = toolName;
+  document.getElementById('selected-tool-name').innerText = `${orderData.service} - ${toolName}`;
   document.getElementById('input-qty').value = 1;
   goTo('screen-quantity');
 }
 
+// SISTEMA DE CARRITO
 function saveQuantity() {
-  let qty = document.getElementById('input-qty').value;
+  let qty = parseInt(document.getElementById('input-qty').value);
   if(qty < 1) { alert("Ingresá una cantidad válida"); return; }
-  orderData.quantity = qty;
+  
+  // Agregar al arreglo del carrito
+  cart.push({
+    service: orderData.service,
+    tool: orderData.tool,
+    quantity: qty
+  });
+
+  renderCart();
+  goTo('screen-cart');
+}
+
+function renderCart() {
+  const container = document.getElementById('cart-container');
+  container.innerHTML = '';
+
+  if(cart.length === 0) {
+    container.innerHTML = '<p style="text-align:center; color: var(--muted);">El carrito está vacío.</p>';
+    return;
+  }
+
+  cart.forEach((item, index) => {
+    let itemHtml = `
+      <div class="cart-item">
+        <div class="cart-item-details">
+          <span class="cart-item-tool">${item.tool}</span>
+          <span class="cart-item-qty">${item.service} - Cantidad: ${item.quantity}</span>
+        </div>
+        <button class="btn-remove" onclick="removeFromCart(${index})">✖</button>
+      </div>
+    `;
+    container.innerHTML += itemHtml;
+  });
+}
+
+function removeFromCart(index) {
+  cart.splice(index, 1);
+  renderCart();
+  if(cart.length === 0) {
+    goTo('screen-service');
+  }
+}
+
+// GOOGLE MAPS Y UBICACIÓN
+let map, marker, geocoder, autocomplete;
+
+function initMap() {
+  // Centro por defecto: Avellaneda, Buenos Aires
+  const defaultLoc = { lat: -34.662, lng: -58.365 }; 
+  
+  // Solo iniciar si la API está cargada (evita errores si falta la Key)
+  if(typeof google === 'undefined') return;
+
+  map = new google.maps.Map(document.getElementById("map-container"), {
+    zoom: 13, 
+    center: defaultLoc,
+    disableDefaultUI: true
+  });
+  
+  marker = new google.maps.Marker({ map: map, position: defaultLoc, draggable: true });
+  geocoder = new google.maps.Geocoder();
+
+  const input = document.getElementById("input-address");
+  autocomplete = new google.maps.places.Autocomplete(input);
+  
+  autocomplete.addListener("place_changed", () => {
+    const place = autocomplete.getPlace();
+    if (place.geometry) {
+      map.setCenter(place.geometry.location);
+      map.setZoom(15);
+      marker.setPosition(place.geometry.location);
+      orderData.coordinates = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
+    }
+  });
+
+  // Permitir mover el marcador manualmente
+  marker.addListener("dragend", () => {
+    orderData.coordinates = { lat: marker.getPosition().lat(), lng: marker.getPosition().lng() };
+    geocodePosition(marker.getPosition());
+  });
+}
+
+function getUserLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const pos = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+      if(map) {
+        map.setCenter(pos);
+        map.setZoom(16);
+        marker.setPosition(pos);
+      }
+      orderData.coordinates = pos;
+      geocodePosition(pos);
+    }, () => {
+      alert("No se pudo obtener la ubicación. Revisá los permisos de tu navegador.");
+    });
+  } else {
+    alert("Tu navegador no soporta geolocalización.");
+  }
+}
+
+function geocodePosition(pos) {
+  if(!geocoder) return;
+  geocoder.geocode({ location: pos }, (results, status) => {
+    if (status === "OK" && results[0]) {
+      document.getElementById("input-address").value = results[0].formatted_address;
+    }
+  });
+}
+
+// Iniciar mapa en la carga de la página si es posible
+window.onload = () => {
+  if(typeof google !== 'undefined') initMap();
+};
+
+function goToLogistics() {
+  if(cart.length === 0) { alert("Tu carrito está vacío"); return; }
   goTo('screen-logistics');
 }
 
 function checkZone() {
   let address = document.getElementById('input-address').value;
-  if(!address) { alert("Por favor ingresá tu dirección"); return; }
+  if(!address) { alert("Por favor ingresá tu dirección o usá tu ubicación actual en el mapa."); return; }
   orderData.address = address;
   
   let alertBox = document.getElementById('zone-alert');
-  if(address.toLowerCase().includes("interior") || address.toLowerCase().includes("ruta")) {
+  if(address.toLowerCase().includes("interior") || address.toLowerCase().includes("ruta") || address.toLowerCase().includes("provincia")) {
     alertBox.className = "alert alert-warning";
     alertBox.innerText = "Estás fuera de zona. Opciones de envío: Via Cargo / Credifin.";
   } else {
@@ -123,27 +254,42 @@ function checkZone() {
   goTo('screen-payment');
 }
 
+// SIMULACIÓN DE CONEXIÓN CON SOFTWARE DE VENDEDORES (BACKEND)
 function finishOrder() {
+  let btn = document.getElementById('btn-finish');
+  btn.innerText = "Enviando al sistema...";
+  btn.disabled = true;
+
   let invoice = document.getElementById('input-invoice').value;
   let payment = document.getElementById('input-paymethod').value;
   
-  let tipoCliente = orderData.isClient ? `Cliente Existente (Nro: ${orderData.clientNumber})` : "Nuevo Cliente";
+  // Objeto JSON listo para ser consumido por un backend/API
+  let payloadBackend = {
+    cliente: {
+      tipo: orderData.isClient ? "Existente" : "Nuevo",
+      numero: orderData.clientNumber || "N/A"
+    },
+    pedidos: cart,
+    logistica: {
+      direccion: orderData.address,
+      coordenadas: orderData.coordinates
+    },
+    facturacion: {
+      requiere_factura: invoice,
+      metodo_pago: payment
+    }
+  };
 
-  let textMessage = `*NUEVO PEDIDO DE SERVICIO* 🛠️\n\n` +
-                    `*Cliente:* ${tipoCliente}\n` +
-                    `*Servicio:* ${orderData.service}\n` +
-                    `*Herramienta:* ${orderData.tool}\n` +
-                    `*Cantidad:* ${orderData.quantity}\n` +
-                    `*Retiro en:* ${orderData.address}\n` +
-                    `*Factura:* ${invoice}\n` +
-                    `*Pago:* ${payment}\n\n` +
-                    `_Enviado desde la App de Wood Tools SRL_`;
+  console.log("--> ENVIANDO DATOS A LA API DEL SISTEMA COMERCIAL <--");
+  console.log(JSON.stringify(payloadBackend, null, 2));
 
-  let encodedMessage = encodeURIComponent(textMessage);
-  let url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-  
-  window.open(url, '_blank');
-  goTo('screen-success');
+  // Simulamos el tiempo de respuesta del servidor (1.5 segundos)
+  setTimeout(() => {
+    btn.innerText = "Confirmar Pedido (Enviar a Sistema)";
+    btn.disabled = false;
+    cart = []; // Vaciar carrito
+    goTo('screen-success');
+  }, 1500);
 }
 
 function startChat(motivo) {

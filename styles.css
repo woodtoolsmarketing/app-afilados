@@ -161,7 +161,8 @@ h2 {
   display: block;
 }
 .btn-primary:hover { background: var(--accent-hover); border: none; }
-.btn-secondary { background: var(--accent2); color: #000; border: none; text-align: center; font-weight: 700; display: block; }
+.btn-secondary { background: #e2e8f0; color: var(--text-dark); border: none; text-align: center; font-weight: 700; display: block; }
+.btn-secondary:hover { background: #cbd5e1;}
 
 /* GRILLA EN 2 COLUMNAS PARA PRODUCTOS */
 .tools-grid {
@@ -171,10 +172,9 @@ h2 {
   padding-bottom: 20px;
 }
 
-/* Tarjeta cuadrada de producto */
 .btn-tool-card {
   display: flex;
-  flex-direction: column; /* Apila imagen y texto verticalmente */
+  flex-direction: column; 
   align-items: center;
   justify-content: center;
   background: var(--surface);
@@ -184,23 +184,22 @@ h2 {
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  aspect-ratio: 1 / 1; /* Hace que sean cuadradas */
+  aspect-ratio: 1 / 1; 
 }
 .btn-tool-card:active { transform: scale(0.95); }
 .btn-tool-card:hover {
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(139, 21, 21, 0.15); /* Sombra roja sutil */
+  box-shadow: 0 4px 12px rgba(139, 21, 21, 0.15); 
 }
 
-/* Espacio para la foto del producto */
 .tool-img {
   width: 65px;
   height: 65px;
   object-fit: cover;
-  border-radius: 8px; /* Cambialo a 50% si en el futuro quieres fotos redondas */
+  border-radius: 8px; 
   background-color: #e2e8f0; 
   border: 1px solid var(--border);
-  margin-bottom: 12px; /* Margen hacia abajo */
+  margin-bottom: 12px; 
   display: flex;
   align-items: center;
   justify-content: center;
@@ -214,6 +213,42 @@ h2 {
   font-weight: 600;
   line-height: 1.2;
   color: var(--text-dark);
+}
+
+/* ESTILOS CARRITO */
+.cart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.cart-item-details {
+  display: flex;
+  flex-direction: column;
+}
+.cart-item-tool {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+.cart-item-qty {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.btn-remove {
+  background: none;
+  border: none;
+  color: #be123c;
+  font-size: 1.2rem;
+  cursor: pointer;
 }
 
 .form-group { margin-bottom: 18px; }
@@ -256,7 +291,7 @@ h2 {
   text-align: center;
   padding: 20px !important;
   height: 100px;
-  color: var(--text-dark) !important;
+  color: var(--accent) !important;
 }
 
 .alert {
