@@ -174,6 +174,7 @@ async function initMap() {
       const { Map } = await google.maps.importLibrary("maps");
       const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
       const { Geocoder } = await google.maps.importLibrary("geocoding");
+      const { Autocomplete } = await google.maps.importLibrary("places"); 
       
       const defaultLoc = { lat: -34.662, lng: -58.365 }; // Avellaneda
 
@@ -191,46 +192,39 @@ async function initMap() {
       });
       
       geocoder = new Geocoder();
-      
       const input = document.getElementById("input-address");
       
-      // Inicializar el Autocompletador Clásico (Estable)
-      if (google.maps.places && google.maps.places.Autocomplete) {
-          autocomplete = new google.maps.places.Autocomplete(input, {
-              componentRestrictions: { country: "ar" },
-              fields: ["formatted_address", "geometry", "name"],
-              strictBounds: false
-          });
+      autocomplete = new Autocomplete(input, {
+          componentRestrictions: { country: "ar" },
+          fields: ["formatted_address", "geometry", "name"],
+          strictBounds: false
+      });
+      
+      autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
           
-          autocomplete.addListener("place_changed", () => {
-              const place = autocomplete.getPlace();
+          if (place.geometry) {
+              map.setCenter(place.geometry.location);
+              map.setZoom(16);
+              marker.position = place.geometry.location;
               
-              if (place.geometry) {
-                  map.setCenter(place.geometry.location);
-                  map.setZoom(16);
-                  marker.position = place.geometry.location;
-                  
-                  orderData.coordinates = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
-                  orderData.address = place.formatted_address || input.value;
-                  
-                  if (place.formatted_address) {
-                      input.value = place.formatted_address;
-                  }
-              } else {
-                  geocodeAddress(input.value);
+              orderData.coordinates = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() };
+              orderData.address = place.formatted_address || input.value;
+              
+              if (place.formatted_address) {
+                  input.value = place.formatted_address;
               }
-          });
-          
-          // Prevenir que el "Enter" envíe formularios accidentalmente si el dropdown está abierto
-          input.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') {
-                  e.preventDefault();
-                  geocodeAddress(input.value);
-              }
-          });
-      } else {
-          console.error("La librería places no está disponible en la API de Google Maps");
-      }
+          } else {
+              geocodeAddress(input.value);
+          }
+      });
+      
+      input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+              e.preventDefault();
+              geocodeAddress(input.value);
+          }
+      });
 
       map.addListener("click", (event) => {
         const clickedLoc = event.latLng;
@@ -282,16 +276,33 @@ function geocodeAddress(address) {
     });
 }
 
+// --- ACÁ ESTÁ LA MAGIA DEL GPS DE ALTA PRECISIÓN ---
 function getUserLocation() {
   if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((position) => {
-      const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
-      if(map) {
-        map.setCenter(pos); map.setZoom(16); marker.position = pos;
-      }
-      orderData.coordinates = pos;
-      geocodePosition(pos);
-    }, () => { alert("No se pudo obtener la ubicación. Revisá los permisos de tu navegador o dispositivo."); });
+    // Le pedimos al celular que encienda el GPS real y no use datos cacheados
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
+        if(map) {
+          map.setCenter(pos); 
+          map.setZoom(18); // Zoom más cerca (18 en vez de 16) para ver la casa exacta
+          marker.position = pos;
+        }
+        orderData.coordinates = pos;
+        geocodePosition(pos);
+      }, 
+      (error) => { 
+        console.error("Error de GPS:", error);
+        alert("No se pudo obtener la ubicación exacta. Asegurate de tener el GPS (Ubicación) encendido en tu celular y darle permisos a la página."); 
+      },
+      options // Pasamos la configuración estricta
+    );
   } else {
     alert("Tu navegador no soporta geolocalización.");
   }
