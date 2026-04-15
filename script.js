@@ -11,9 +11,10 @@ let orderData = {
 };
 
 let cart = [];
-let historyStack = ['screen-client'];
+let historyStack = ['screen-landing'];
 let mapInitialized = false;
 
+// ------------------- NAVEGACIÓN Y MENÚ -------------------
 function goTo(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
@@ -22,15 +23,19 @@ function goTo(screenId) {
     historyStack.push(screenId);
   }
   
-  let hideBackBtn = ['screen-client', 'screen-welcome', 'screen-success'].includes(screenId);
+  // Mostrar/Ocultar Header Principal
+  const showHeader = !['screen-landing', 'screen-login', 'screen-register', 'screen-forgot', 'screen-biometric'].includes(screenId);
+  document.getElementById('main-header').style.display = showHeader ? 'block' : 'none';
+
+  // Botón Volver
+  let hideBackBtn = ['screen-landing', 'screen-service', 'screen-success'].includes(screenId);
   document.getElementById('bottom-bar').style.display = hideBackBtn ? 'none' : 'flex';
 
   if(screenId === 'screen-logistics') {
     renderAddressHistory();
     setTimeout(() => {
-      if(!mapInitialized) {
-          initMap();
-      } else if(map) {
+      if(!mapInitialized) { initMap(); } 
+      else if(map) {
          google.maps.event.trigger(map, 'resize');
          if(marker && marker.position) map.setCenter(marker.position);
       }
@@ -46,58 +51,68 @@ function goBack() {
   }
 }
 
-function setClient(isClient) {
-  orderData.isClient = isClient;
-  const fieldsDiv = document.getElementById('client-fields');
-  const actionDiv = document.getElementById('client-action');
-  const title = document.getElementById('client-title');
-  
-  if(isClient) {
-    title.innerText = "Ingresá tus datos";
-    fieldsDiv.innerHTML = `
-      <div class="form-group">
-        <label>DNI o CUIT</label>
-        <input type="text" id="login-dni" placeholder="Ingresá tu DNI...">
-      </div>
-      <div class="form-group">
-        <label>Teléfono</label>
-        <input type="text" id="login-tel" placeholder="Ingresá tu número...">
-      </div>
-      <div class="checkbox-group">
-        <input type="checkbox" id="login-remember">
-        <label for="login-remember">Recordar usuario</label>
-      </div>
-    `;
-    actionDiv.innerHTML = `<button class="btn btn-primary" onclick="loginUser()">Continuar</button>`;
-  } else {
-    title.innerText = "Alta de Nuevo Cliente";
-    fieldsDiv.innerHTML = `
-      <div class="form-group"><input type="text" placeholder="Razón Social / Nombre"></div>
-      <div class="form-group"><input type="text" placeholder="CUIT / CUIL"></div>
-      <div class="form-group"><input type="text" placeholder="Teléfono / WhatsApp"></div>
-      <div class="form-group"><input type="text" placeholder="Localidad / Provincia"></div>
-    `;
-    actionDiv.innerHTML = `<button class="btn btn-primary" onclick="goTo('screen-service')">Continuar</button>`;
-  }
-  goTo('screen-client-data');
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('show');
 }
 
-function loginUser() {
+function updateGlobalClientNumber(number) {
+  orderData.clientNumber = number;
+  document.getElementById('header-client-number').innerText = `Nro de cliente: ${number}`;
+  document.getElementById('sidebar-client-number').innerText = `Nro de cliente: ${number}`;
+}
+
+function resetApp() {
+  cart = [];
+  document.getElementById('cart-badge').innerText = "0";
+  goTo('screen-service');
+}
+
+// ------------------- AUTENTICACIÓN -------------------
+function doLogin() {
   let dni = document.getElementById('login-dni').value;
   if(!dni || dni.length < 6) { alert("Por favor, ingresá un DNI válido"); return; }
-  
   let lastDigits = dni.slice(-4);
-  orderData.clientNumber = `WT-${lastDigits}`;
-  
-  document.getElementById('display-client-number').innerText = `Nro de cliente: ${orderData.clientNumber}`;
-  
-  let headerClientNumber = document.getElementById('header-client-number');
-  headerClientNumber.innerText = `Nro de cliente: ${orderData.clientNumber}`;
-  headerClientNumber.style.display = 'block';
-
-  goTo('screen-welcome');
+  updateGlobalClientNumber(`WT-${lastDigits}`);
+  goTo('screen-service');
 }
 
+function doRegister() {
+  let dni = document.getElementById('reg-dni').value;
+  let nombre = document.getElementById('reg-nombre').value;
+  if(!dni || !nombre) { alert("Completá los campos principales"); return; }
+  let randomNum = Math.floor(1000 + Math.random() * 9000);
+  updateGlobalClientNumber(`WT-${randomNum}`);
+  goTo('screen-service');
+}
+
+function sendRecovery() {
+  let email = document.getElementById('forgot-email').value;
+  if(!email) { alert("Ingresá un correo."); return; }
+  alert(`Link de recuperación enviado a ${email}`);
+  goTo('screen-login');
+}
+
+function simulateBiometric() {
+  const icon = document.querySelector('.bio-icon');
+  icon.classList.add('bio-pulse');
+  setTimeout(() => {
+    icon.classList.remove('bio-pulse');
+    document.getElementById('bio-scan-area').style.display = 'none';
+    document.getElementById('bio-success-area').style.display = 'block';
+  }, 1500);
+}
+
+function sendBackupRecovery() {
+  let email = document.getElementById('new-backup-email').value;
+  if(!email) { alert("Ingresá un nuevo correo."); return; }
+  alert(`Link de configuración enviado a ${email}`);
+  goTo('screen-login');
+}
+
+// ------------------- FLUJO DE SERVICIO -------------------
 function setService(serviceType) {
   orderData.service = serviceType;
   document.getElementById('tools-title').innerText = `Herramienta a ${serviceType}`;
@@ -121,8 +136,10 @@ function saveQuantity() {
     quantity: qty
   });
 
+  document.getElementById('cart-badge').innerText = cart.length;
   renderCart();
-  goTo('screen-cart');
+  goTo('screen-service'); // Vuelve al menú para seguir agregando, o puede ir al carrito manual
+  alert("Agregado al carrito");
 }
 
 function renderCart() {
@@ -135,23 +152,15 @@ function renderCart() {
   }
 
   cart.forEach((item, index) => {
-    let itemHtml = `
-      <div class="cart-item">
-        <div class="cart-item-details">
-          <span class="cart-item-tool">${item.tool}</span>
-          <span class="cart-item-qty">${item.service} - Cantidad: ${item.quantity}</span>
-        </div>
-        <button class="btn-remove" onclick="removeFromCart(${index})">✖</button>
-      </div>
-    `;
+    let itemHtml = `<div class="cart-item-row">${item.quantity} - ${item.tool} (${item.service})</div>`;
     container.innerHTML += itemHtml;
   });
 }
 
-function removeFromCart(index) {
-  cart.splice(index, 1);
-  renderCart();
-  if(cart.length === 0) goTo('screen-service');
+function cancelCart() {
+  cart = [];
+  document.getElementById('cart-badge').innerText = "0";
+  goTo('screen-service');
 }
 
 function goToLogistics() {
@@ -159,9 +168,7 @@ function goToLogistics() {
   goTo('screen-logistics');
 }
 
-// ----------------------------------------------------
-// GOOGLE MAPS CLÁSICO Y ESTABLE
-// ----------------------------------------------------
+// ------------------- MAPAS Y LOGÍSTICA -------------------
 let map, marker, geocoder, autocomplete;
 
 async function initMap() {
@@ -176,7 +183,7 @@ async function initMap() {
       const { Geocoder } = await google.maps.importLibrary("geocoding");
       const { Autocomplete } = await google.maps.importLibrary("places"); 
       
-      const defaultLoc = { lat: -34.662, lng: -58.365 }; // Avellaneda
+      const defaultLoc = { lat: -34.662, lng: -58.365 }; 
 
       map = new Map(document.getElementById("map-container"), {
         zoom: 14, 
@@ -276,41 +283,28 @@ function geocodeAddress(address) {
     });
 }
 
-// --- ACÁ ESTÁ LA MAGIA DEL GPS DE ALTA PRECISIÓN ---
 function getUserLocation() {
   if (navigator.geolocation) {
-    // Le pedimos al celular que encienda el GPS real y no use datos cacheados
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    };
-
+    const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
         if(map) {
           map.setCenter(pos); 
-          map.setZoom(18); // Zoom más cerca (18 en vez de 16) para ver la casa exacta
+          map.setZoom(18); 
           marker.position = pos;
         }
         orderData.coordinates = pos;
         geocodePosition(pos);
       }, 
-      (error) => { 
-        console.error("Error de GPS:", error);
-        alert("No se pudo obtener la ubicación exacta. Asegurate de tener el GPS (Ubicación) encendido en tu celular y darle permisos a la página."); 
-      },
-      options // Pasamos la configuración estricta
+      (error) => { alert("Asegurate de tener el GPS encendido."); },
+      options
     );
   } else {
     alert("Tu navegador no soporta geolocalización.");
   }
 }
 
-// ----------------------------------------------------
-// MANEJO DE HISTORIAL LOCAL DE DIRECCIONES
-// ----------------------------------------------------
 function saveAddressToHistory(address, coords) {
   if (!address || address.trim() === "") return;
   let history = JSON.parse(localStorage.getItem('addressHistoryWT')) || [];
@@ -335,7 +329,6 @@ function renderAddressHistory() {
       btn.onclick = () => {
         document.getElementById('input-address').value = item.address;
         orderData.address = item.address;
-        
         if(item.coords && typeof google !== 'undefined' && map && marker) {
           map.setCenter(item.coords);
           map.setZoom(16);
@@ -350,56 +343,35 @@ function renderAddressHistory() {
   }
 }
 
-function checkZone() {
+function finishOrder() {
   let address = document.getElementById('input-address').value;
-  
-  if(!address || address.trim() === "") { 
-      alert("Por favor ingresá tu dirección o ubicá el pin en el mapa."); 
-      return; 
-  }
+  if(!address || address.trim() === "") { alert("Ingresá tu dirección."); return; }
   
   orderData.address = address;
   saveAddressToHistory(orderData.address, orderData.coordinates);
-  
-  let alertBox = document.getElementById('zone-alert');
-  if(address.toLowerCase().includes("interior") || address.toLowerCase().includes("ruta") || address.toLowerCase().includes("provincia")) {
-    alertBox.className = "alert alert-warning";
-    alertBox.innerText = "Estás fuera de zona. Opciones de envío: Via Cargo / Credifin.";
-  } else {
-    alertBox.className = "alert alert-info";
-    alertBox.innerText = "¡Perfecto! El afilador pasa por tu zona.";
-  }
-  goTo('screen-payment');
-}
 
-function finishOrder() {
   let btn = document.getElementById('btn-finish');
   btn.innerText = "Enviando al sistema...";
   btn.disabled = true;
-
-  let invoice = document.getElementById('input-invoice').value;
-  let payment = document.getElementById('input-paymethod').value;
   
   let payloadBackend = {
-    cliente: { tipo: orderData.isClient ? "Existente" : "Nuevo", numero: orderData.clientNumber || "N/A" },
+    cliente: { numero: orderData.clientNumber },
     pedidos: cart,
-    logistica: { direccion: orderData.address, coordenadas: orderData.coordinates },
-    facturacion: { requiere_factura: invoice, metodo_pago: payment }
+    logistica: { direccion: orderData.address, coordenadas: orderData.coordinates }
   };
 
   console.log("--> ENVIANDO DATOS A LA API DEL SISTEMA COMERCIAL <--");
   console.log(JSON.stringify(payloadBackend, null, 2));
 
   setTimeout(() => {
-    btn.innerText = "Confirmar Pedido (Enviar a Sistema)";
+    btn.innerText = "Confirmar Ubicación";
     btn.disabled = false;
-    cart = []; 
     goTo('screen-success');
   }, 1500);
 }
 
 function startChat(motivo) {
-  let textMessage = `Hola, necesito consultar sobre: *${motivo}*`;
+  let textMessage = `Hola, soy el cliente ${orderData.clientNumber || 'Nuevo'}. Necesito consultar sobre: *${motivo}*`;
   let encodedMessage = encodeURIComponent(textMessage);
   let url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
   window.open(url, '_blank');
