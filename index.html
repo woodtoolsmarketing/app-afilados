@@ -13,14 +13,14 @@
 
   <!-- ===== Marca de agua (logo difuminado) ===== -->
   <div class="watermark" aria-hidden="true">
-    <img src="imagenes/Diseño_sin_título__24_-removebg-preview.png" alt="" onerror="this.style.display='none'">
+    <img src="imagenes/Logo/1.png" alt="" onerror="this.style.display='none'">
   </div>
 
   <!-- ===== Menú lateral ===== -->
   <aside id="sidebar" class="sidebar" aria-hidden="true" inert>
     <div class="sidebar-head">
       <button class="sidebar-close" onclick="closeSidebar()" aria-label="Cerrar menú">✕</button>
-      <img class="sidebar-logo" src="imagenes/Diseño_sin_título__24_-removebg-preview.png" alt="WoodTools" onerror="this.style.display='none'">
+      <img class="sidebar-logo" src="imagenes/Logo/2.png" alt="WoodTools" onerror="this.style.display='none'">
     </div>
     <h3 class="sidebar-title">Afilador digital<br>WoodTools</h3>
     <nav class="sidebar-menu">
@@ -43,7 +43,7 @@
     <button class="icon-btn menu-btn" onclick="openSidebar()" aria-label="Abrir menú">
       <span></span><span></span><span></span>
     </button>
-    <img class="header-logo" src="imagenes/Diseño_sin_título__24_-removebg-preview.png" alt="WoodTools" onerror="this.style.display='none'">
+    <img class="header-logo" src="imagenes/Logo/2.png" alt="WoodTools" onerror="this.style.display='none'">
     <button class="icon-btn cart-btn" id="cart-btn" onclick="goTo('screen-cart')" aria-label="Carrito" hidden>
       <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.2l2.2 12.3a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.2L21.5 7H5.4"/></svg>
       <span class="cart-badge" id="cart-badge" hidden>0</span>
@@ -169,6 +169,7 @@
     <section id="screen-detail" class="screen">
       <h1 class="page-title" id="detail-title">AFILADO</h1>
       <p class="subtitle" id="detail-tool"></p>
+      <img id="detail-photo" class="detail-tool-photo" alt="" hidden>
       <div id="detail-fields" class="detail-fields"></div>
       <div class="center detail-actions">
         <button class="btn btn-red block" onclick="addToCart()">Agregar al<br>carrito</button>
@@ -191,6 +192,7 @@
     <section id="screen-logistics" class="screen">
       <h1 class="page-title" id="log-title">AFILADO</h1>
       <p class="subtitle" id="log-tool"></p>
+      <img id="log-photo" class="detail-tool-photo" alt="" hidden>
       <div class="field">
         <label for="log-address">Dirección</label>
         <input type="text" id="log-address" class="box-input" autocomplete="off" placeholder="Escribí tu dirección...">
@@ -261,7 +263,7 @@
 
   <!-- ===== Footer ===== -->
   <footer class="app-footer">
-    <img class="footer-logo" src="imagenes/Diseño_sin_título__24_-removebg-preview.png" alt="WoodTools" onerror="this.style.display='none'">
+    <img class="footer-logo" src="imagenes/Logo/2.png" alt="WoodTools" onerror="this.style.display='none'">
     <span>WoodTools SRL® - Cabildo 61, Avellaneda</span>
   </footer>
 

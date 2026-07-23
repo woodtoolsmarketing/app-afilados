@@ -47,9 +47,9 @@ body{
   z-index:0;pointer-events:none;overflow:hidden;
 }
 .watermark img{
-  width:135%;max-width:none;
-  filter:blur(11px) saturate(1.35);
-  opacity:.5;
+  width:128%;max-width:none;
+  filter:saturate(1.05);          /* la imagen 1.png ya viene difuminada */
+  opacity:.9;
   transform:translateY(-2%);
 }
 
@@ -193,8 +193,8 @@ body{
   border-top:2px solid var(--ink);border-left:2px solid var(--ink);}
 .tool-card{
   border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);
-  min-height:120px;padding:18px 12px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  min-height:178px;padding:14px 10px 16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;
   background:transparent;cursor:pointer;text-align:center;
   transition:background .2s,transform .15s var(--ease);
   animation:tileIn .4s var(--ease) backwards;
@@ -206,13 +206,13 @@ body{
 @keyframes tileIn{from{opacity:0;transform:scale(.94);}to{opacity:1;transform:scale(1);}}
 .tool-card:hover{background:rgba(255,255,255,.55);}
 .tool-card:active{transform:scale(.95);}
-.tool-card .tool-name{font-size:1.05rem;font-weight:800;color:var(--ink);line-height:1.15;}
+.tool-card .tool-name{font-size:1.02rem;font-weight:800;color:var(--ink);line-height:1.15;}
 .tool-card .tool-ico{width:46px;height:46px;color:var(--red-dark);}
-.tool-card img.tool-photo{width:76px;height:76px;object-fit:contain;}
+.tool-card img.tool-photo{width:100%;flex:1;min-height:0;object-fit:contain;pointer-events:none;}
 
 /* ===== Detalle de herramienta ===== */
 .detail-fields{margin-top:4px;}
-.detail-tool-photo{width:120px;margin:0 auto 14px;display:block;object-fit:contain;}
+.detail-tool-photo{width:150px;max-height:150px;margin:0 auto 16px;display:block;object-fit:contain;}
 .detail-actions{display:flex;flex-direction:column;gap:14px;margin-top:18px;}
 .help-link{color:var(--footer);text-align:center;font-size:1rem;margin-top:26px;cursor:pointer;
   line-height:1.35;transition:color .2s;}

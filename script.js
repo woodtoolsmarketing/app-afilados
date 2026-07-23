@@ -9,15 +9,16 @@ const VENDORS = ["Martín", "Lucas", "Diego", "Sofía"];
    type: 'sierra'  -> cantidad + cantidad de dientes + modelo (texto)
          'mechas'  -> cantidad + modelo (dropdown animado)
          'simple'  -> cantidad + modelo (texto)                              */
+const IMG = 'imagenes/Herramientas/';
 const TOOLS = [
-  { id:'melamina',  name:'Sierras para melamina', article:'la sierra', type:'sierra' },
-  { id:'madera',    name:'Sierras para madera',   article:'la sierra', type:'sierra' },
-  { id:'fresas',    name:'Fresas',                article:'la fresa',  type:'simple' },
-  { id:'cuchillas', name:'Cuchillas',             article:'la cuchilla', type:'simple' },
-  { id:'mechas',    name:'Mechas',                article:'la mecha',  type:'mechas' },
-  { id:'cabezales', name:'Cabezales',             article:'el cabezal', type:'simple' },
-  { id:'multiple',  name:'Sierras para múltiple', article:'la sierra', type:'sierra' },
-  { id:'diamante',  name:'Diamante',              article:'la herramienta', type:'simple' },
+  { id:'melamina',  name:'Sierras para melamina', article:'la sierra',      type:'sierra', img:IMG+'SC%20melamina.png' },
+  { id:'madera',    name:'Sierras para madera',   article:'la sierra',      type:'sierra', img:IMG+'SC%20madera.png' },
+  { id:'fresas',    name:'Fresas',                article:'la fresa',       type:'simple', img:IMG+'Fresa.png' },
+  { id:'cuchillas', name:'Cuchillas',             article:'la cuchilla',    type:'simple', img:IMG+'Cuchillas.png' },
+  { id:'mechas',    name:'Mechas',                article:'la mecha',       type:'mechas', img:IMG+'Mechas.png' },
+  { id:'cabezales', name:'Cabezales',             article:'el cabezal',     type:'simple', img:IMG+'Cabezales.png' },
+  { id:'multiple',  name:'Sierras para múltiple', article:'la sierra',      type:'sierra', img:IMG+'SC%20Franzoi.png' },
+  { id:'diamante',  name:'Diamante',              article:'la herramienta', type:'simple', img:IMG+'Diamante.png' },
 ];
 
 const MECHA_MODELS = [
@@ -148,7 +149,8 @@ function renderToolsGrid(){
     const card = document.createElement('div');
     card.className = 'tool-card';
     card.onclick = () => selectTool(t.id);
-    card.innerHTML = `<span class="tool-name">${t.name}</span>`;
+    card.innerHTML = `<span class="tool-name">${t.name}</span>` +
+      (t.img ? `<img class="tool-photo" src="${t.img}" alt="${t.name}" loading="lazy" onerror="this.remove()">` : '');
     grid.appendChild(card);
   });
 }
@@ -167,6 +169,8 @@ function renderDetail(){
   current.draft = {};             // evita arrastrar el modelo elegido antes
   document.getElementById('detail-title').textContent = SERVICE_LABEL[s];
   document.getElementById('detail-tool').textContent = t.name;
+  const photo = document.getElementById('detail-photo');
+  if(t.img){ photo.src = t.img; photo.hidden = false; } else { photo.hidden = true; }
   const box = document.getElementById('detail-fields');
   box.innerHTML = '';
 
@@ -378,6 +382,10 @@ function openLogistics(){
     cart.length === 1 ? cart[0].tool
     : cart.length > 1 ? `${cart.length} herramientas · ${totalUnits} u.`
     : (current.tool?.name || '');
+  // Foto: solo cuando el pedido es de una única herramienta
+  const logPhoto = document.getElementById('log-photo');
+  const only = cart.length === 1 ? TOOLS.find(t => t.id === cart[0].toolId) : null;
+  if(only && only.img){ logPhoto.src = only.img; logPhoto.hidden = false; } else { logPhoto.hidden = true; }
   setupAddressField('log-address','log-map', { locateInput:true });
   const savedLink = document.getElementById('log-saved-link');
   savedLink.style.display = localStorage.getItem('wt_saved_address') ? 'inline-block' : 'none';
