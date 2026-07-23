@@ -174,31 +174,152 @@ function renderDetail(){
   const box = document.getElementById('detail-fields');
   box.innerHTML = '';
 
-  // Cantidad (siempre)
+  // ----- Sierras: pregunta 1 modelo / varios + grupos repetibles ---------
+  if(t.type === 'sierra'){
+    current.sierraMode = 'uno';
+    current.sierraGroups = [{ qty:'1', teeth:'', model:'' }];
+    const section = document.createElement('div');
+    section.id = 'sierra-section';
+    box.appendChild(section);
+    renderSierraSection();
+    return;
+  }
+
+  // ----- Mechas / simples: cantidad + modelo ------------------------------
   box.appendChild(fieldHTML(`Cantidad de ${t.name.toLowerCase()}`,
     `<input type="number" min="1" value="1" id="d-qty" class="box-input half" inputmode="numeric">`, 'd-qty'));
 
-  // Sierras -> cantidad de dientes
-  if(t.type === 'sierra'){
-    const label = s === 'reparacion' ? 'Cantidad de dientes a reparar' : 'Cantidad de dientes';
-    const wrap = fieldHTML(label, `<input type="number" min="0" id="d-teeth" class="box-input half" inputmode="numeric">`, 'd-teeth');
-    if(s === 'reparacion'){
-      const link = document.createElement('a');
-      link.href = '#'; link.className = 'field-link';
-      link.textContent = '¿Queres comprar una nueva?';
-      link.onclick = (e)=>{ e.preventDefault(); openWhatsApp(`Quiero comprar una ${t.name} nueva`); };
-      wrap.appendChild(link);
-    }
-    box.appendChild(wrap);
-  }
-
-  // Modelo
   if(t.type === 'mechas'){
     box.appendChild(buildCustomSelect(`Modelo de ${t.name.toLowerCase()}`, MECHA_MODELS));
   } else {
     box.appendChild(fieldHTML(`Modelo de ${t.name.toLowerCase()}`,
       `<input type="text" id="d-model" class="box-input" placeholder="Ej: marca / medida">`, 'd-model'));
   }
+}
+
+/* ----- Sección de sierras (1 modelo o varios) -------------------------- */
+function renderSierraSection(){
+  const section = document.getElementById('sierra-section');
+  const s = current.service;
+  const teethLabel = s === 'reparacion' ? 'Cantidad de dientes a reparar' : 'Cantidad de dientes';
+  section.innerHTML = '';
+
+  // Pregunta: ¿un solo modelo o varios?
+  const q = document.createElement('div');
+  q.className = 'field';
+  q.innerHTML = `<label>¿Es un solo modelo o varios?</label>
+    <div class="seg" role="group" aria-label="Cantidad de modelos">
+      <button type="button" class="seg-btn ${current.sierraMode==='uno'?'active':''}"    data-mode="uno"    aria-pressed="${current.sierraMode==='uno'}">Un modelo</button>
+      <button type="button" class="seg-btn ${current.sierraMode==='varios'?'active':''}" data-mode="varios" aria-pressed="${current.sierraMode==='varios'}">Varios modelos</button>
+    </div>`;
+  q.querySelectorAll('.seg-btn').forEach(b => b.addEventListener('click', () => setSierraMode(b.dataset.mode)));
+  section.appendChild(q);
+
+  // Grupos (recuadros) de sierras
+  current.sierraGroups.forEach((g, i) => section.appendChild(buildSierraGroup(g, i, teethLabel)));
+
+  // Botón "+ sierra nueva" (sólo en modo varios)
+  if(current.sierraMode === 'varios'){
+    const add = document.createElement('button');
+    add.type = 'button'; add.className = 'btn-add'; add.id = 'add-sierra';
+    add.innerHTML = '<span>+</span> sierra nueva';
+    add.addEventListener('click', addSierraGroup);
+    section.appendChild(add);
+  }
+
+  updateGrandTotal();
+}
+
+function buildSierraGroup(g, i, teethLabel){
+  const varios = current.sierraMode === 'varios';
+  const wrap = document.createElement('div');
+  wrap.className = 'sierra-group' + (varios ? ' boxed' : '');
+  wrap.dataset.idx = i;
+
+  const head = varios
+    ? `<div class="sg-head"><span class="sg-title">Sierra ${i+1}</span>${current.sierraGroups.length>1 ? '<button type="button" class="sg-remove" aria-label="Quitar sierra">✕</button>' : ''}</div>`
+    : '';
+  wrap.innerHTML = head +
+    `<div class="field"><label>Cantidad de sierras</label>
+       <input type="number" min="1" class="box-input half g-qty" inputmode="numeric"></div>
+     <div class="field"><label>${teethLabel}</label>
+       <input type="number" min="0" class="box-input half g-teeth" inputmode="numeric">
+       <span class="teeth-total" aria-live="polite"></span></div>
+     <div class="field"><label>Modelo de la sierra</label>
+       <input type="text" class="box-input g-model" placeholder="Ej: marca / medida"></div>`;
+
+  const qtyIn = wrap.querySelector('.g-qty');
+  const teethIn = wrap.querySelector('.g-teeth');
+  const modelIn = wrap.querySelector('.g-model');
+  const totalEl = wrap.querySelector('.teeth-total');
+  qtyIn.value = g.qty ?? ''; teethIn.value = g.teeth ?? ''; modelIn.value = g.model ?? '';
+
+  // Reparación: comprar una nueva
+  if(current.service === 'reparacion'){
+    const teethField = wrap.querySelectorAll('.field')[1];
+    const link = document.createElement('a');
+    link.href = '#'; link.className = 'field-link';
+    link.textContent = '¿Queres comprar una nueva?';
+    link.onclick = (e) => { e.preventDefault(); openWhatsApp(`Quiero comprar una ${current.tool.name} nueva`); };
+    teethField.appendChild(link);
+  }
+
+  const computeTotal = () => {
+    const q = parseInt(qtyIn.value || '0', 10), d = parseInt(teethIn.value || '0', 10);
+    totalEl.textContent = (q > 0 && d > 0) ? `= ${q * d} dientes en total` : '';
+  };
+  const onInput = () => {
+    g.qty = qtyIn.value; g.teeth = teethIn.value;
+    computeTotal(); current.dirty = true; updateGrandTotal();
+  };
+  qtyIn.addEventListener('input', onInput);
+  teethIn.addEventListener('input', onInput);
+  modelIn.addEventListener('input', () => { g.model = modelIn.value; current.dirty = true; });
+
+  const rm = wrap.querySelector('.sg-remove');
+  if(rm) rm.addEventListener('click', () => removeSierraGroup(i));
+
+  computeTotal();               // total inicial sin marcar "dirty"
+  return wrap;
+}
+
+function setSierraMode(mode){
+  if(mode === current.sierraMode) return;
+  current.sierraMode = mode;
+  if(mode === 'uno') current.sierraGroups = [current.sierraGroups[0] || { qty:'1', teeth:'', model:'' }];
+  current.dirty = true;
+  renderSierraSection();
+}
+
+function addSierraGroup(){
+  current.sierraGroups.push({ qty:'1', teeth:'', model:'' });
+  current.dirty = true;
+  renderSierraSection();
+  // enfoca la cantidad del recuadro recién agregado
+  const groups = document.querySelectorAll('#sierra-section .sierra-group');
+  groups[groups.length - 1]?.querySelector('.g-qty')?.focus();
+}
+
+function removeSierraGroup(i){
+  if(current.sierraGroups.length <= 1) return;
+  current.sierraGroups.splice(i, 1);
+  current.dirty = true;
+  renderSierraSection();
+}
+
+function updateGrandTotal(){
+  const section = document.getElementById('sierra-section');
+  if(!section) return;
+  const total = current.sierraGroups.reduce((sum, g) => {
+    const q = parseInt(g.qty || '0', 10), d = parseInt(g.teeth || '0', 10);
+    return sum + (q > 0 && d > 0 ? q * d : 0);
+  }, 0);
+  let el = section.querySelector('.grand-total');
+  if(total > 0 && current.sierraGroups.length > 1){
+    if(!el){ el = document.createElement('p'); el.className = 'grand-total'; section.appendChild(el); }
+    const verb = current.service === 'reparacion' ? 'reparar' : 'afilar';
+    el.textContent = `Total de dientes a ${verb}: ${total}`;
+  } else if(el){ el.remove(); }
 }
 
 function fieldHTML(labelText, innerHTML, forId){
@@ -288,18 +409,36 @@ document.addEventListener('click', e => {
     });
 });
 
-/* ----- Leer el detalle y armar el ítem -------------------------------- */
+/* ----- Leer el detalle y armar los ítems (devuelve array o null) ------- */
 function readDetail(){
   const t = current.tool, s = current.service;
+
+  // Sierras: un ítem por cada recuadro (modelo)
+  if(t.type === 'sierra'){
+    const items = [];
+    for(let i = 0; i < current.sierraGroups.length; i++){
+      const g = current.sierraGroups[i];
+      const qty = parseInt(g.qty || '0', 10);
+      if(!qty || qty < 1){
+        alert(current.sierraMode === 'varios'
+          ? `Ingresá la cantidad de sierras en el modelo ${i + 1}.`
+          : 'Ingresá una cantidad válida.');
+        return null;
+      }
+      const item = { service:s, toolId:t.id, tool:t.name, quantity:qty };
+      const teeth = parseInt(g.teeth || '0', 10);
+      if(teeth > 0){ item.teeth = teeth; item.totalTeeth = teeth * qty; }
+      const model = (g.model || '').trim();
+      if(model) item.model = model;
+      items.push(item);
+    }
+    return items;
+  }
+
+  // Mechas / simples: un único ítem
   const qty = parseInt(document.getElementById('d-qty')?.value || '0', 10);
   if(!qty || qty < 1){ alert('Ingresá una cantidad válida.'); return null; }
-
   const item = { service:s, toolId:t.id, tool:t.name, quantity:qty };
-
-  if(t.type === 'sierra'){
-    const teeth = document.getElementById('d-teeth')?.value.trim();
-    if(teeth) item.teeth = teeth;
-  }
   if(t.type === 'mechas'){
     if(!current.draft.model){ alert('Elegí un modelo.'); return null; }
     item.model = current.draft.model;
@@ -307,15 +446,15 @@ function readDetail(){
     const m = document.getElementById('d-model')?.value.trim();
     if(m) item.model = m;
   }
-  return item;
+  return [item];
 }
 
 function addToCart(){
-  const item = readDetail();
-  if(!item) return;
-  cart.push(item);
+  const items = readDetail();
+  if(!items) return;
+  cart.push(...items);
   refreshCartBadge(true);
-  flash('Agregado al carrito ✓');
+  flash(items.length > 1 ? `${items.length} sierras agregadas ✓` : 'Agregado al carrito ✓');
   renderDetail();               // limpia el formulario
 }
 
@@ -323,9 +462,9 @@ function nextFromDetail(){
   // Solo agrega el ítem actual si el formulario fue editado (evita duplicar
   // cuando el usuario ya tocó "Agregar al carrito" antes de "Siguiente").
   if(current.dirty){
-    const item = readDetail();
-    if(!item) return;
-    cart.push(item);
+    const items = readDetail();
+    if(!items) return;
+    cart.push(...items);
     refreshCartBadge(true);
     current.dirty = false;
   }
@@ -352,7 +491,8 @@ function renderCart(){
   cart.forEach((it, i) => {
     const row = document.createElement('div');
     row.className = 'cart-item';
-    const sub = [SERVICE_LABEL[it.service], it.model, it.teeth ? `${it.teeth} dientes` : null]
+    const teethTxt = it.teeth ? `${it.totalTeeth} dientes (${it.teeth}×${it.quantity})` : null;
+    const sub = [SERVICE_LABEL[it.service], it.model, teethTxt]
       .filter(Boolean).join(' · ');
     row.innerHTML = `
       <div class="ci-main">
