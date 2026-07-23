@@ -251,6 +251,69 @@ body{
 .btn-add:hover{background:rgba(158,27,27,.07);}
 .btn-add:active{transform:scale(.97);}
 
+/* ===== Fechas de retiro (días de la zona) ===== */
+.pickup-note{font-size:.95rem;color:var(--text);margin-bottom:10px;line-height:1.4;}
+.pickup-note.muted{color:var(--muted);}
+.pickup-note strong{color:var(--red-dark);}
+.pickup-dates{display:flex;flex-wrap:wrap;gap:10px;}
+.pickup-chip{
+  display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px;
+  padding:10px 12px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);
+  cursor:pointer;transition:border-color .2s,background .2s,transform .12s;
+}
+.pickup-chip:hover{border-color:var(--red-dark);}
+.pickup-chip:active{transform:scale(.96);}
+.pickup-chip.sel{background:var(--red-dark);border-color:var(--red-dark);color:#fff;}
+.pickup-chip .pc-day{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.pickup-chip .pc-date{font-size:1.05rem;font-weight:800;}
+
+/* ===== Pantallas informativas (Sobre nosotros / Servicio) ===== */
+.info-screen .page-title{margin-bottom:14px;}
+.info-h2{text-align:center;font-size:1.4rem;font-weight:900;color:var(--red-dark);line-height:1.2;margin-bottom:6px;}
+.info-sub{text-align:center;font-size:1.02rem;color:var(--muted);font-weight:500;margin-bottom:16px;line-height:1.35;}
+.info-p{font-size:1rem;color:var(--text);line-height:1.6;text-align:justify;margin-bottom:14px;}
+.info-p strong{color:var(--ink);}
+.info-divisor{width:80px;height:4px;background:var(--red-dark);border-radius:2px;margin:22px auto;}
+.info-cards{display:flex;flex-direction:column;gap:16px;}
+.info-card{background:var(--surface);border:2px solid var(--red-dark);border-radius:12px;padding:20px 18px;
+  box-shadow:0 6px 16px rgba(0,0,0,.06);}
+.info-card h3{display:flex;align-items:center;gap:12px;color:var(--red-dark);font-size:1.2rem;margin-bottom:12px;}
+.info-card .ic-ico{font-size:1.4rem;line-height:1;}
+.info-card p{font-size:.96rem;color:var(--text);line-height:1.55;text-align:justify;margin-bottom:10px;}
+.info-card p:last-child{margin-bottom:0;}
+.info-brands{text-align:center;font-size:.95rem;font-weight:700;color:var(--footer);margin:22px 0 4px;}
+
+/* ===== FAQ acordeón ===== */
+.faq-heading{text-align:center;font-size:1.35rem;font-weight:900;color:var(--ink);margin-bottom:16px;}
+.faq{display:flex;flex-direction:column;gap:12px;}
+.faq-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  box-shadow:0 4px 12px rgba(0,0,0,.05);transition:box-shadow .2s;}
+.faq-item.open{box-shadow:0 6px 16px rgba(158,27,27,.12);}
+.faq-q{width:100%;background:none;border:none;padding:16px 18px;display:flex;align-items:center;gap:12px;
+  justify-content:space-between;cursor:pointer;text-align:left;font-size:1rem;font-weight:800;color:var(--ink);
+  transition:color .2s;}
+.faq-q:hover{color:var(--red-dark);}
+.faq-ico{font-size:1.3rem;color:var(--red-dark);transition:transform .35s var(--ease);flex-shrink:0;}
+.faq-q.active .faq-ico{transform:rotate(180deg);}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .38s var(--ease);background:var(--field);}
+.faq-a p{padding:0 18px 18px;margin:0;color:var(--text);line-height:1.55;font-size:.95rem;}
+
+/* ===== Calendario de visitas ===== */
+.cal-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+.cal-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 10px rgba(0,0,0,.05);}
+.cal-main{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.cal-name{font-weight:800;color:var(--ink);font-size:1.02rem;}
+.cal-zone{font-size:.82rem;color:var(--muted);}
+.cal-days{display:flex;gap:5px;flex-shrink:0;}
+.cal-day{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;
+  font-size:.75rem;font-weight:700;background:var(--field);color:var(--muted);border:1px solid var(--border);}
+.cal-day.on{background:var(--red-dark);color:#fff;border-color:var(--red-dark);}
+@media (max-width:360px){
+  .cal-day{width:30px;height:30px;font-size:.7rem;}
+  .cal-days{gap:3px;}
+}
+
 /* ===== Dropdown personalizado (modelo) ===== */
 .cselect{position:relative;user-select:none;}
 .cselect-trigger{

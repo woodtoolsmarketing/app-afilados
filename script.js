@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    Afilador digital WoodTools — lógica de la app
    ========================================================================== */
 
@@ -31,6 +31,211 @@ const MECHA_MODELS = [
 ];
 
 const SERVICE_LABEL = { afilado:'AFILADO', reparacion:'REPARACIÓN' };
+
+/* ============ ZONAS Y DÍAS DE VISITA DE VENDEDORES =====================
+   days: 1=Lunes ... 5=Viernes (coinciden con Date.getDay()).
+   Datos según la planilla "Días y zonas de visita de vendedores".        */
+const DIA_NOMBRE = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const DIA_ABREV  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+const LOCALITIES = [
+  // ---- CABA ----
+  { name:'Capital', zone:'CABA', days:[2,4,5], aliases:['ciudad autonoma de buenos aires','ciudad de buenos aires','caba','capital federal'] },
+  { name:'Palermo', zone:'CABA', days:[2,4,5] },
+  { name:'Paternal', zone:'CABA', days:[2,4,5] },
+  { name:'Floresta', zone:'CABA', days:[2,4,5] },
+  { name:'Villa Crespo', zone:'CABA', days:[2,4,5] },
+  { name:'Congreso', zone:'CABA', days:[2,4,5] },
+  { name:'Nueva Pompeya', zone:'CABA', days:[2,4], aliases:['pompeya'] },
+  { name:'Barracas', zone:'CABA', days:[2,4] },
+  { name:'Caballito', zone:'CABA', days:[2,4] },
+  { name:'Bajo Flores', zone:'CABA', days:[4] },
+  { name:'Flores', zone:'CABA', days:[2] },
+  // ---- La Plata ----
+  { name:'La Plata', zone:'La Plata', days:[1,3] },
+  { name:'City Bell', zone:'La Plata', days:[1,3] },
+  { name:'Villa Elisa', zone:'La Plata', days:[3] },
+  { name:'Berisso', zone:'La Plata', days:[1], aliases:['beriso'] },
+  { name:'Los Hornos', zone:'La Plata', days:[1] },
+  { name:'Abasto', zone:'La Plata', days:[1] },
+  // ---- Sur ----
+  { name:'Lanús', zone:'Sur', days:[1] },
+  { name:'Remedios de Escalada', zone:'Sur', days:[1], aliases:['escalada'] },
+  { name:'Temperley', zone:'Sur', days:[1] },
+  { name:'Lomas de Zamora', zone:'Sur', days:[1] },
+  { name:'Llavallol', zone:'Sur', days:[1], aliases:['guillon'] },
+  { name:'9 de Abril', zone:'Sur', days:[1] },
+  { name:'Bernal', zone:'Sur', days:[3] },
+  { name:'Quilmes', zone:'Sur', days:[3] },
+  { name:'Ezpeleta', zone:'Sur', days:[3] },
+  { name:'Florencio Varela', zone:'Sur', days:[3], aliases:['varela'] },
+  { name:'Berazategui', zone:'Sur', days:[3] },
+  { name:'Monte Grande', zone:'Sur', days:[5] },
+  { name:'Ezeiza', zone:'Sur', days:[5] },
+  { name:'Cañuelas', zone:'Sur', days:[5] },
+  { name:'Adrogué', zone:'Sur', days:[5] },
+  { name:'Canning', zone:'Sur', days:[5] },
+  // ---- Oeste ----
+  { name:'Morón', zone:'Oeste', days:[1,3] },
+  { name:'Villa Celina', zone:'Oeste', days:[1] },
+  { name:'Gregorio de Laferrere', zone:'Oeste', days:[1,3,4], aliases:['laferrere','la ferrere'] },
+  { name:'Isidro Casanova', zone:'Oeste', days:[1,3,4] },
+  { name:'Ciudad Evita', zone:'Oeste', days:[1] },
+  { name:'Ciudadela', zone:'Oeste', days:[2] },
+  { name:'Caseros', zone:'Oeste', days:[2,5] },
+  { name:'El Palomar', zone:'Oeste', days:[2,5], aliases:['palomar'] },
+  { name:'José C. Paz', zone:'Oeste', days:[2,5], aliases:['jose c paz'] },
+  { name:'Los Polvorines', zone:'Oeste', days:[2,5], aliases:['polvorines'] },
+  { name:'Bella Vista', zone:'Oeste', days:[2,5] },
+  { name:'Ramos Mejía', zone:'Oeste', days:[3], aliases:['r mejia'] },
+  { name:'Haedo', zone:'Oeste', days:[3,5] },
+  { name:'Villa Bosch', zone:'Oeste', days:[3], aliases:['v bosch'] },
+  { name:'Luján', zone:'Oeste', days:[3] },
+  { name:'Jáuregui', zone:'Oeste', days:[3] },
+  { name:'General Rodríguez', zone:'Oeste', days:[3], aliases:['g rodriguez'] },
+  { name:'San Justo', zone:'Oeste', days:[3,4] },
+  { name:'La Tablada', zone:'Oeste', days:[3,4] },
+  { name:'Lomas del Mirador', zone:'Oeste', days:[3,4] },
+  { name:'Villa Madero', zone:'Oeste', days:[4] },
+  { name:'Castelar', zone:'Oeste', days:[5] },
+  { name:'Ituzaingó', zone:'Oeste', days:[1,5] },
+  { name:'Mercedes', zone:'Oeste', days:[5] },
+  { name:'Pilar', zone:'Oeste', days:[5] },
+  { name:'Merlo', zone:'Oeste', days:[1] },
+  { name:'Hurlingham', zone:'Oeste', days:[1] },
+  // ---- Norte ----
+  { name:'San Miguel', zone:'Norte', days:[4] },
+  { name:'General Pacheco', zone:'Norte', days:[4], aliases:['pacheco'] },
+  { name:'Tigre', zone:'Norte', days:[3,4] },
+  { name:'San Martín', zone:'Norte', days:[2] },
+  { name:'Villa Ballester', zone:'Norte', days:[2], aliases:['v ballester'] },
+  { name:'Martínez', zone:'Norte', days:[2], aliases:['martelli'] },
+  { name:'Florida', zone:'Norte', days:[2] },
+  { name:'Munro', zone:'Norte', days:[2] },
+  { name:'Boulogne', zone:'Norte', days:[1,5], aliases:['boulogne sur mer'] },
+  { name:'Grand Bourg', zone:'Norte', days:[1,5] },
+  { name:'Villa Adelina', zone:'Norte', days:[1,5] },
+  { name:'San Fernando', zone:'Norte', days:[3,5] },
+  { name:'Victoria', zone:'Norte', days:[3] },
+  { name:'Rincón de Milberg', zone:'Norte', days:[3] },
+  { name:'El Talar', zone:'Norte', days:[3], aliases:['talar de pacheco'] },
+  { name:'Benavídez', zone:'Norte', days:[3,5] },
+  { name:'Tortuguitas', zone:'Norte', days:[3] },
+  { name:'Olivos', zone:'Norte', days:[4] },
+  { name:'Vicente López', zone:'Norte', days:[4], aliases:['v lopez'] },
+  { name:'Acassuso', zone:'Norte', days:[4] },
+  { name:'Beccar', zone:'Norte', days:[4] },
+  { name:'Virreyes', zone:'Norte', days:[4] },
+  { name:'San Isidro', zone:'Norte', days:[4] },
+  { name:'Don Torcuato', zone:'Norte', days:[5] },
+];
+
+function normLoc(s){
+  return (s || '').toString().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'')
+    .replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+const LOC_MAP = (() => {
+  const m = {};
+  LOCALITIES.forEach(e => { m[normLoc(e.name)] = e; (e.aliases||[]).forEach(a => m[normLoc(a)] = e); });
+  return m;
+})();
+const LOC_KEYS = LOCALITIES
+  .flatMap(e => [e.name, ...(e.aliases||[])].map(n => ({ key: normLoc(n), e })))
+  .sort((a, b) => b.key.length - a.key.length);
+
+function resolveZone(components, formatted){
+  if(Array.isArray(components)){
+    const order = ['sublocality_level_1','sublocality','neighborhood','locality','administrative_area_level_2'];
+    for(const type of order){
+      for(const c of components){
+        if(c.types && c.types.includes(type)){
+          const hit = LOC_MAP[normLoc(c.long_name)];
+          if(hit) return hit;
+        }
+      }
+    }
+  }
+  const nf = ' ' + normLoc(formatted) + ' ';
+  for(const { key, e } of LOC_KEYS){ if(nf.includes(' ' + key + ' ')) return e; }
+  return null;
+}
+function diasTexto(days){
+  const names = days.slice().sort((a, b) => a - b).map(d => DIA_NOMBRE[d]);
+  return names.length <= 1 ? (names[0] || '') : names.slice(0, -1).join(', ') + ' y ' + names[names.length - 1];
+}
+
+/* ----- Fechas de retiro disponibles según los días de la zona ---------- */
+function isoDate(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function nextPickupDates(allowedDays, count){
+  const dates = [], d = new Date();
+  d.setHours(12,0,0,0); d.setDate(d.getDate() + 1);   // desde mañana
+  let guard = 0;
+  while(dates.length < count && guard < 120){
+    if(allowedDays.includes(d.getDay())) dates.push(new Date(d));
+    d.setDate(d.getDate() + 1); guard++;
+  }
+  return dates;
+}
+function renderPickupChips(allowedDays){
+  const cont = document.getElementById('pickup-dates');
+  cont.innerHTML = '';
+  nextPickupDates(allowedDays, 8).forEach(d => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pickup-chip'; b.dataset.iso = isoDate(d);
+    b.innerHTML = `<span class="pc-day">${DIA_ABREV[d.getDay()]}</span>`
+      + `<span class="pc-date">${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</span>`;
+    b.addEventListener('click', () => {
+      cont.querySelectorAll('.pickup-chip').forEach(c => c.classList.remove('sel'));
+      b.classList.add('sel');
+      orderData.pickupDate = b.dataset.iso;
+    });
+    cont.appendChild(b);
+  });
+}
+function initPickup(){
+  const note = document.getElementById('pickup-note');
+  note.textContent = 'Elegí el día de retiro. Al ingresar tu dirección te mostramos los días exactos de tu zona.';
+  note.classList.add('muted');
+  orderData.pickupDate = null;
+  renderPickupChips([1,2,3,4,5]);
+}
+function updatePickupForAddress(components, formatted){
+  const match = resolveZone(components, formatted);
+  const note = document.getElementById('pickup-note');
+  orderData.pickupDate = null;
+  if(match){
+    note.classList.remove('muted');
+    note.innerHTML = `Pasamos por <strong>${match.name}</strong> (Zona ${match.zone}) los <strong>${diasTexto(match.days)}</strong>. Elegí tu día:`;
+    renderPickupChips(match.days);
+  } else {
+    note.classList.add('muted');
+    note.textContent = 'No detectamos tu zona. Elegí un día y lo coordinamos con un vendedor:';
+    renderPickupChips([1,2,3,4,5]);
+  }
+}
+
+/* ----- Calendario de visitas (pantalla) ------------------------------- */
+function renderCalendar(filter){
+  const list = document.getElementById('cal-list');
+  if(!list) return;
+  const nf = normLoc(filter || '');
+  const items = LOCALITIES
+    .filter(e => !nf || normLoc(e.name).includes(nf) || normLoc(e.zone).includes(nf)
+      || (e.aliases||[]).some(a => normLoc(a).includes(nf)))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  if(!items.length){
+    list.innerHTML = '<p class="cart-empty">No encontramos esa localidad. Escribinos y lo coordinamos.</p>';
+    return;
+  }
+  list.innerHTML = items.map(e => `
+    <div class="cal-item">
+      <div class="cal-main"><span class="cal-name">${e.name}</span><span class="cal-zone">Zona ${e.zone}</span></div>
+      <div class="cal-days">${[1,2,3,4,5].map(d =>
+        `<span class="cal-day${e.days.includes(d) ? ' on' : ''}">${DIA_ABREV[d]}</span>`).join('')}</div>
+    </div>`).join('');
+}
 
 let orderData = { clientNumber:'', address:'', coordinates:null };
 let cart = [];
@@ -529,6 +734,9 @@ function openLogistics(){
   setupAddressField('log-address','log-map', { locateInput:true });
   const savedLink = document.getElementById('log-saved-link');
   savedLink.style.display = localStorage.getItem('wt_saved_address') ? 'inline-block' : 'none';
+  initPickup();   // días de retiro por defecto hasta que se resuelva la dirección
+  // Si ya había una dirección resuelta (volvimos a esta pantalla), restaura los días de la zona.
+  if(mapsReady && orderData.coordinates) reverseGeocode(orderData.coordinates, 'log-map');
 }
 
 function useSavedAddress(){
@@ -546,7 +754,8 @@ function finishOrder(){
   orderData.address = address;
   localStorage.setItem('wt_saved_address', address);
 
-  const dateVal = document.getElementById('log-date').value;
+  const dateVal = orderData.pickupDate;
+  if(!dateVal){ alert('Elegí un día de retiro.'); return; }
   const btn = document.getElementById('btn-finish');
   btn.textContent = 'Enviando...'; btn.disabled = true;
 
@@ -559,7 +768,7 @@ function finishOrder(){
   console.log('--> ENVIANDO AL SISTEMA COMERCIAL <--\n' + JSON.stringify(payload, null, 2));
 
   const vendor = VENDORS[Math.floor(Math.random()*VENDORS.length)];
-  const fecha  = dateVal ? formatDate(dateVal) : 'a coordinar';
+  const fecha  = formatDate(dateVal);
 
   setTimeout(() => {
     btn.textContent = 'Finalizar'; btn.disabled = false;
@@ -572,13 +781,6 @@ function finishOrder(){
     current = { service: current.service, tool:null, draft:{} };
     goTo('screen-success');
   }, 1200);
-}
-
-function scheduleVisit(){
-  const d = document.getElementById('cal-date').value;
-  if(!d){ alert('Elegí una fecha.'); return; }
-  alert(`Visita agendada para el ${formatDate(d)}.`);
-  goTo('screen-service');
 }
 
 function formatDate(iso){
@@ -601,6 +803,8 @@ function clearLogisticsFields(){
   ['log-address','log-cp','log-date'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   const map = document.getElementById('log-map');
   if(map) map.classList.remove('open');   // cierra el mini-mapa de la zona
+  const chips = document.getElementById('pickup-dates'); if(chips) chips.innerHTML = '';
+  orderData.pickupDate = null;
 }
 
 function openWhatsApp(motivo){
@@ -697,7 +901,7 @@ function setupAddressField(inputId, mapWrapId, opts = {}){
   try{
     ac = new AutocompleteCls(input, {
       componentRestrictions:{ country:'ar' },
-      fields:['formatted_address','geometry','name'],
+      fields:['formatted_address','geometry','name','address_components'],
     });
   }catch(e){
     // Si el widget de Places no está disponible, el campo sigue como texto simple.
@@ -711,6 +915,7 @@ function setupAddressField(inputId, mapWrapId, opts = {}){
       showZone(mapWrapId, place.geometry.location, input);
       if(place.formatted_address) input.value = place.formatted_address;
       orderData.address = input.value;
+      if(mapWrapId === 'log-map') updatePickupForAddress(place.address_components, input.value);
     }
   });
   // El Enter lo maneja el propio widget de Autocomplete (elige la 1ª sugerencia);
@@ -758,6 +963,7 @@ function geocodeInto(text, mapWrapId, input){
       showZone(mapWrapId, loc, input);
       input.value = res[0].formatted_address;
       orderData.address = input.value;
+      if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, input.value);
     } else {
       alert('No encontramos esa dirección. Probá con más detalle.');
     }
@@ -774,6 +980,7 @@ function reverseGeocode(pos, mapWrapId){
                   : mapWrapId === 'reg-map' ? document.getElementById('reg-address')
                   : document.getElementById('reg-ship');
       if(input){ input.value = res[0].formatted_address; orderData.address = input.value; input.dataset.geo = '1'; }
+      if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, res[0].formatted_address);
     }
   });
 }
@@ -785,4 +992,18 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAddressField('reg-address','reg-map');   // se encola si Maps aún no cargó
   refreshCartBadge();
   initMapsApi();                                 // por si Maps ya estaba disponible
+
+  // Calendario de visitas: búsqueda por localidad
+  const calSearch = document.getElementById('cal-search');
+  if(calSearch){ calSearch.addEventListener('input', e => renderCalendar(e.target.value)); renderCalendar(''); }
+
+  // FAQ del servicio (acordeón animado)
+  document.querySelectorAll('#service-faq .faq-q').forEach(q => {
+    q.addEventListener('click', () => {
+      const item = q.parentElement, ans = q.nextElementSibling;
+      const open = item.classList.toggle('open');
+      q.classList.toggle('active', open);
+      ans.style.maxHeight = open ? ans.scrollHeight + 'px' : null;
+    });
+  });
 });

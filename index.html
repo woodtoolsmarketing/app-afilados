@@ -25,8 +25,8 @@
     <h3 class="sidebar-title">Afilador digital<br>WoodTools</h3>
     <nav class="sidebar-menu">
       <button class="sidebar-item" style="--i:1" onclick="navFromMenu('screen-about')">Sobre nosotros</button>
-      <button class="sidebar-item" style="--i:2" onclick="navFromMenu('afilado')">Servicio de afilado</button>
-      <button class="sidebar-item" style="--i:3" onclick="navFromMenu('reparacion')">Servicio de reparación</button>
+      <button class="sidebar-item" style="--i:2" onclick="navFromMenu('screen-service-info')">Servicio de afilado</button>
+      <button class="sidebar-item" style="--i:3" onclick="navFromMenu('screen-service-info')">Servicio de reparación</button>
       <button class="sidebar-item" style="--i:4" onclick="navFromMenu('screen-calendar')">Calendario de visitas</button>
     </nav>
     <div class="sidebar-foot">
@@ -204,8 +204,10 @@
         <input type="text" id="log-cp" class="box-input half" inputmode="numeric">
       </div>
       <div class="field">
-        <label for="log-date">Agendá tu fecha de retiro</label>
-        <input type="date" id="log-date" class="box-input half">
+        <label>Agendá tu fecha de retiro</label>
+        <p id="pickup-note" class="pickup-note">Ingresá tu dirección para ver los días que pasamos por tu zona.</p>
+        <div id="pickup-dates" class="pickup-dates"></div>
+        <input type="date" id="log-date" class="box-input half" hidden>
       </div>
       <div class="center mt">
         <button class="btn btn-red" id="btn-finish" onclick="finishOrder()">Finalizar</button>
@@ -236,27 +238,95 @@
       </div>
     </section>
 
-    <!-- ABOUT -->
-    <section id="screen-about" class="screen">
+    <!-- ABOUT / SOBRE NOSOTROS -->
+    <section id="screen-about" class="screen info-screen">
       <h1 class="page-title">SOBRE NOSOTROS</h1>
-      <p class="lead">WoodTools SRL es un servicio de afilado y reparación de herramientas para carpintería y melamina. Retiramos, afilamos y te devolvemos tus herramientas listas para trabajar.</p>
-      <p class="lead">Estamos en Cabildo 61, Avellaneda. Coordinamos retiros y entregas a domicilio.</p>
+      <p class="info-h2">Somos Wood Tools S.R.L.</p>
+      <p class="info-sub">Expertos en la fabricación y comercialización de herramientas de corte</p>
+      <p class="info-p">Nuestra empresa cuenta con la experiencia de <strong>más de 40 años</strong> en el mercado de la fabricación y comercialización de herramientas de corte para la elaboración de la madera.</p>
+      <div class="info-divisor"></div>
+
+      <div class="info-cards">
+        <div class="info-card">
+          <h3><span class="ic-ico">🛣️</span> Trayectoria</h3>
+          <p>A través de nuestra red de ventas formada por representantes y vendedores propios cubrimos el 70% del territorio Argentino con una presencia de nuestro personal casi permanente.</p>
+          <p>Pudiendo brindar así un servicio personalizado a cada uno de nuestros clientes, colaborando en la resolución de problemas gracias al conocimiento técnico de nuestros vendedores.</p>
+        </div>
+        <div class="info-card">
+          <h3><span class="ic-ico">🏭</span> Fabricación</h3>
+          <p>Contamos con una amplia gama de productos que se producen en nuestra planta industrial. Tenemos una línea de productos standard de los cuales contamos con stock permanente.</p>
+          <p>Además, gracias a nuestro departamento técnico desarrollamos cualquier herramienta especial que nuestros clientes necesiten, haciéndoles llegar un plano con el diseño para ser aprobado, con el que luego se dará comienzo a la fabricación de la herramienta solicitada.</p>
+        </div>
+        <div class="info-card">
+          <h3><span class="ic-ico">🤝</span> Comercialización</h3>
+          <p>Desde hace más de 10 años nuestra empresa representa a las mejores marcas de Europa con las cuales sostenemos una estrecha relación.</p>
+          <p>Comercializamos sierras circulares, cabezales con insertos y cuchillas de la más alta calidad, garantizando el mejor asesoramiento técnico y un stock permanente para una entrega inmediata.</p>
+        </div>
+        <div class="info-card">
+          <h3><span class="ic-ico">🏅</span> Calidad</h3>
+          <p>Gracias a la materia prima seleccionada, la evaluación permanente de nuestros proveedores, conjugados con la incorporación constante de nueva tecnología y capacitación de nuestro personal, Wood Tools obtiene productos de altísima confiabilidad.</p>
+          <p>El control de los diferentes procesos de fabricación hacen que las herramientas obtenidas cuenten con el más alto rendimiento en el momento de ser usadas.</p>
+        </div>
+      </div>
+
+      <p class="info-brands">Representamos: Ilma · Schiavon · Freud · Franzoi · Nordutensili</p>
       <div class="center mt">
-        <button class="btn btn-red" onclick="goTo('screen-service')">Empezar</button>
+        <button class="btn btn-red" onclick="goTo('screen-service')">Empezar mi pedido</button>
       </div>
     </section>
 
-    <!-- CALENDAR -->
+    <!-- SERVICE INFO / SERVICIO DE AFILADO -->
+    <section id="screen-service-info" class="screen info-screen">
+      <h1 class="page-title">SERVICIO DE<br>AFILADO</h1>
+      <p class="info-h2">Servicio de Afilado y Mantenimiento</p>
+      <p class="info-sub">La clave para proteger su inversión y maximizar el rendimiento</p>
+      <p class="info-p">En WoodTools entendemos que una herramienta de corte industrial no es simplemente un consumible, sino una <strong>inversión crítica para su línea de producción</strong>. El desgaste natural del Carburo de Tungsteno (Metal duro) o del Diamante PCD provoca pérdida de filo: cortes astillados, mayor fricción, recalentamiento del acero y un sobreesfuerzo innecesario en los motores de su maquinaria.</p>
+      <p class="info-p">Mantener sus sierras, fresas y brocas con el filo en óptimas condiciones mediante nuestro servicio técnico <strong>evita la deformación prematura de la herramienta y prolonga drásticamente su vida útil</strong>. Un afilado a tiempo, con la geometría exacta y la refrigeración adecuada, le permite obtener el máximo retorno de su inversión.</p>
+      <div class="info-divisor"></div>
+
+      <h3 class="faq-heading">Preguntas frecuentes</h3>
+      <div class="faq" id="service-faq">
+        <div class="faq-item">
+          <button type="button" class="faq-q"><span>¿Conviene reparar una herramienta dañada o comprar una nueva?</span><span class="faq-ico">⌄</span></button>
+          <div class="faq-a"><p>Nuestro objetivo es ofrecerle siempre la solución más económica y eficiente. Antes de descartar una pieza, nuestro departamento técnico evalúa su estado para brindarle un servicio de afilado o reparación (como el recambio de dientes de Metal duro) que le devuelva su rendimiento original, optimizando los costos de su producción.</p></div>
+        </div>
+        <div class="faq-item">
+          <button type="button" class="faq-q"><span>¿Qué diferencia al afilado de Wood Tools del resto del mercado?</span><span class="faq-ico">⌄</span></button>
+          <div class="faq-a"><p>La tecnología. Somos el primer centro robotizado en Argentina y el tercero en Sudamérica dedicado exclusivamente al afilado de sierras circulares con cortantes de Carburo de Tungsteno. Esto nos permite superar los métodos manuales y garantizar una precisión de afilado un 30% superior a cualquier máquina CNC convencional.</p></div>
+        </div>
+        <div class="faq-item">
+          <button type="button" class="faq-q"><span>¿Cómo impacta esta tecnología robotizada en mi producción?</span><span class="faq-ico">⌄</span></button>
+          <div class="faq-a"><p>Se traduce directamente en rentabilidad. Nuestro sistema de afilado logra hasta un 40% de aumento en la durabilidad de la sierra. Su herramienta soportará más reafilados sin perder geometría, entregándole muchos más metros de corte antes de necesitar un reemplazo.</p></div>
+        </div>
+        <div class="faq-item">
+          <button type="button" class="faq-q"><span>Necesito una herramienta con un perfil específico, ¿pueden ayudarme?</span><span class="faq-ico">⌄</span></button>
+          <div class="faq-a"><p>Absolutamente. Contamos con un departamento técnico especializado en el diseño de todo tipo de herramientas de corte para la industria maderera. Diseñamos, fabricamos y afilamos a medida herramientas especiales, rectas o perfiladas, según los requerimientos de sus perfiles.</p></div>
+        </div>
+        <div class="faq-item">
+          <button type="button" class="faq-q"><span>¿Cómo es la logística para enviar mis herramientas a afilar?</span><span class="faq-ico">⌄</span></button>
+          <div class="faq-a"><p>Para las industrias ubicadas en el Gran Buenos Aires (GBA) y Capital Federal (CABA), brindamos un servicio de retiro y entrega a domicilio para que su línea de producción no pierda un solo minuto.</p></div>
+        </div>
+        <div class="faq-item">
+          <button type="button" class="faq-q"><span>¿Atienden a industrias del interior del país?</span><span class="faq-ico">⌄</span></button>
+          <div class="faq-a"><p>Sí, contamos con servicio de recepciones y despachos a toda la Argentina. Además, nos apoyamos en nuestra extensa red de distribuidores y representantes a nivel nacional, garantizando la misma calidad de atención sin importar en qué provincia se encuentre su fábrica.</p></div>
+        </div>
+      </div>
+
+      <div class="stack mt">
+        <button class="btn btn-red" onclick="startService('afilado')">Solicitar afilado</button>
+        <button class="btn btn-outline" onclick="startService('reparacion')">Solicitar reparación</button>
+      </div>
+    </section>
+
+    <!-- CALENDAR / CALENDARIO DE VISITAS -->
     <section id="screen-calendar" class="screen">
       <h1 class="page-title">CALENDARIO<br>DE VISITAS</h1>
-      <p class="lead">Elegí un día para que uno de nuestros vendedores pase a retirar tus herramientas.</p>
+      <p class="lead">Buscá tu localidad y mirá qué días pasan nuestros vendedores a retirar y entregar herramientas.</p>
       <div class="field">
-        <label for="cal-date">Fecha de visita</label>
-        <input type="date" id="cal-date" class="box-input half">
+        <label for="cal-search">Tu localidad</label>
+        <input type="text" id="cal-search" class="box-input" placeholder="Ej: Quilmes, Morón, Palermo..." autocomplete="off">
       </div>
-      <div class="center mt">
-        <button class="btn btn-red" onclick="scheduleVisit()">Agendar visita</button>
-      </div>
+      <div id="cal-list" class="cal-list"></div>
     </section>
 
   </main>
