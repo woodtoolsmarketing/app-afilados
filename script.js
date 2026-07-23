@@ -3,7 +3,14 @@
    ========================================================================== */
 
 const WHATSAPP_NUMBER = "5491134609057";
-const VENDORS = ["Martín", "Lucas", "Diego", "Sofía"];
+// Vendedor a cargo de cada zona (según la planilla de vendedores).
+const VENDOR_BY_ZONE = {
+  'Oeste':    'Alan Calvi',
+  'Norte':    'Roberto Golik',
+  'La Plata': 'Saad',
+  'CABA':     'Saad',
+  'Sur':      'Lucas',
+};
 
 /* Catálogo de herramientas.
    type: 'sierra'  -> cantidad + cantidad de dientes + modelo (texto)
@@ -145,7 +152,7 @@ const LOC_KEYS = LOCALITIES
 
 function resolveZone(components, formatted){
   if(Array.isArray(components)){
-    const order = ['sublocality_level_1','sublocality','neighborhood','locality','administrative_area_level_2'];
+    const order = ['sublocality_level_1','sublocality','neighborhood','locality','administrative_area_level_2','administrative_area_level_1'];
     for(const type of order){
       for(const c of components){
         if(c.types && c.types.includes(type)){
@@ -205,15 +212,28 @@ function updatePickupForAddress(components, formatted){
   const match = resolveZone(components, formatted);
   const note = document.getElementById('pickup-note');
   orderData.pickupDate = null;
+  orderData.zone   = match ? match.zone : null;
+  orderData.vendor = match ? (VENDOR_BY_ZONE[match.zone] || null) : null;
   if(match){
+    const vendor = orderData.vendor ? ` Te visita <strong>${orderData.vendor}</strong>.` : '';
     note.classList.remove('muted');
-    note.innerHTML = `Pasamos por <strong>${match.name}</strong> (Zona ${match.zone}) los <strong>${diasTexto(match.days)}</strong>. Elegí tu día:`;
+    note.innerHTML = `Pasamos por <strong>${match.name}</strong> (Zona ${match.zone}) los <strong>${diasTexto(match.days)}</strong>.${vendor} Elegí tu día:`;
     renderPickupChips(match.days);
   } else {
     note.classList.add('muted');
     note.textContent = 'No detectamos tu zona. Elegí un día y lo coordinamos con un vendedor:';
     renderPickupChips([1,2,3,4,5]);
   }
+}
+
+/* Autocompleta el código postal a partir de la dirección del mapa */
+function fillPostalCode(mapWrapId, components){
+  if(!Array.isArray(components)) return;
+  const pc = components.find(c => c.types && c.types.includes('postal_code'));
+  if(!pc) return;
+  const id = mapWrapId === 'log-map' ? 'log-cp' : mapWrapId === 'reg-map' ? 'reg-cp' : null;
+  const el = id && document.getElementById(id);
+  if(el) el.value = pc.long_name;
 }
 
 /* ----- Calendario de visitas (pantalla) ------------------------------- */
@@ -763,21 +783,25 @@ function finishOrder(){
     cliente:{ numero: orderData.clientNumber },
     pedidos: cart,
     logistica:{ direccion: orderData.address, cp: document.getElementById('log-cp').value.trim(),
+                zona: orderData.zone || null, vendor: orderData.vendor || null,
                 fecha_retiro: dateVal, coordenadas: orderData.coordinates }
   };
   console.log('--> ENVIANDO AL SISTEMA COMERCIAL <--\n' + JSON.stringify(payload, null, 2));
 
-  const vendor = VENDORS[Math.floor(Math.random()*VENDORS.length)];
-  const fecha  = formatDate(dateVal);
+  const fecha = formatDate(dateVal);
+  const vendorLine = orderData.vendor
+    ? `EL VENDEDOR ${orderData.vendor.toUpperCase()}`
+    : 'UN VENDEDOR';
 
   setTimeout(() => {
     btn.textContent = 'Finalizar'; btn.disabled = false;
     document.getElementById('success-msg').innerHTML =
-      `¡PERFECTO!<br>EL VENDEDOR ${vendor.toUpperCase()} VA A ESTAR PASANDO POR TU UBICACIÓN EL DÍA ${fecha.toUpperCase()}`;
+      `¡PERFECTO!<br>${vendorLine} VA A ESTAR PASANDO POR TU UBICACIÓN EL DÍA ${fecha.toUpperCase()}`;
     // El pedido ya se envió: vaciamos carrito y datos para que un próximo pedido arranque limpio.
     cart = []; refreshCartBadge();
     clearLogisticsFields();
     orderData.address = ''; orderData.coordinates = null;
+    orderData.vendor = null; orderData.zone = null;
     current = { service: current.service, tool:null, draft:{} };
     goTo('screen-success');
   }, 1200);
@@ -804,7 +828,7 @@ function clearLogisticsFields(){
   const map = document.getElementById('log-map');
   if(map) map.classList.remove('open');   // cierra el mini-mapa de la zona
   const chips = document.getElementById('pickup-dates'); if(chips) chips.innerHTML = '';
-  orderData.pickupDate = null;
+  orderData.pickupDate = null; orderData.vendor = null; orderData.zone = null;
 }
 
 function openWhatsApp(motivo){
@@ -915,6 +939,7 @@ function setupAddressField(inputId, mapWrapId, opts = {}){
       showZone(mapWrapId, place.geometry.location, input);
       if(place.formatted_address) input.value = place.formatted_address;
       orderData.address = input.value;
+      fillPostalCode(mapWrapId, place.address_components);
       if(mapWrapId === 'log-map') updatePickupForAddress(place.address_components, input.value);
     }
   });
@@ -963,6 +988,7 @@ function geocodeInto(text, mapWrapId, input){
       showZone(mapWrapId, loc, input);
       input.value = res[0].formatted_address;
       orderData.address = input.value;
+      fillPostalCode(mapWrapId, res[0].address_components);
       if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, input.value);
     } else {
       alert('No encontramos esa dirección. Probá con más detalle.');
@@ -980,6 +1006,7 @@ function reverseGeocode(pos, mapWrapId){
                   : mapWrapId === 'reg-map' ? document.getElementById('reg-address')
                   : document.getElementById('reg-ship');
       if(input){ input.value = res[0].formatted_address; orderData.address = input.value; input.dataset.geo = '1'; }
+      fillPostalCode(mapWrapId, res[0].address_components);
       if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, res[0].formatted_address);
     }
   });
