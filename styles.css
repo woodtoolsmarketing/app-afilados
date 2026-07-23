@@ -20,6 +20,9 @@
 
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Outfit',system-ui,sans-serif;}
 
+/* El atributo [hidden] debe ganar siempre (si no, display:flex lo anula) */
+[hidden]{display:none !important;}
+
 html,body{height:100%;}
 body{
   background:#c9ccd4;
@@ -227,6 +230,7 @@ body{
 .cs-arrow{transition:transform .3s var(--ease);color:var(--muted);font-size:.9rem;}
 .cselect.open .cs-arrow{transform:rotate(180deg);}
 .cselect-panel{
+  list-style:none;margin:0;padding:0;
   overflow:hidden;max-height:0;opacity:0;
   border:0 solid #111;border-radius:0 0 8px 8px;background:var(--surface);
   transition:max-height .3s var(--ease),opacity .25s,border-width .2s;
@@ -235,7 +239,8 @@ body{
 .cs-option{padding:13px 14px;font-size:1rem;color:var(--ink);cursor:pointer;
   border-bottom:1px solid var(--border);transition:background .15s;}
 .cs-option:last-child{border-bottom:none;}
-.cs-option:hover{background:var(--field);}
+.cs-option:hover,.cs-option.active{background:var(--field);}
+.cs-option:focus{outline:none;background:#e7e9ef;box-shadow:inset 3px 0 0 var(--red);}
 .cs-option:active{background:#e7e9ef;}
 
 /* ===== Carrito ===== */

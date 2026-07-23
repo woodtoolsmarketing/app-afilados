@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Afilador digital WoodTools</title>
 <link rel="stylesheet" href="styles.css">
 <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA0r9W1pgN0SxZKRtAAGAUoX1d6ClWpt3c&libraries=places,marker&loading=async&callback=onMapsLoaded"></script>
@@ -17,7 +17,7 @@
   </div>
 
   <!-- ===== Menú lateral ===== -->
-  <aside id="sidebar" class="sidebar" aria-hidden="true">
+  <aside id="sidebar" class="sidebar" aria-hidden="true" inert>
     <div class="sidebar-head">
       <button class="sidebar-close" onclick="closeSidebar()" aria-label="Cerrar menú">✕</button>
       <img class="sidebar-logo" src="imagenes/Diseño_sin_título__24_-removebg-preview.png" alt="WoodTools" onerror="this.style.display='none'">
@@ -71,11 +71,11 @@
     <section id="screen-login" class="screen">
       <h1 class="page-title">INICIA SESIÓN</h1>
       <div class="field">
-        <label>Usuario o CUIT</label>
+        <label for="login-user">Usuario o CUIT</label>
         <input type="text" id="login-user" class="line-input" autocomplete="username">
       </div>
       <div class="field">
-        <label>Contraseña</label>
+        <label for="login-pass">Contraseña</label>
         <input type="password" id="login-pass" class="line-input" autocomplete="current-password">
       </div>
       <div class="center mt">
@@ -92,7 +92,7 @@
       <h1 class="page-title">RECUPERAR</h1>
       <p class="lead">Ingresá el correo con el que estás registrado y te enviaremos un enlace para restablecer tu contraseña.</p>
       <div class="field">
-        <label>Correo electrónico</label>
+        <label for="forgot-email">Correo electrónico</label>
         <input type="email" id="forgot-email" class="line-input" placeholder="ejemplo@mail.com">
       </div>
       <div class="center mt">
@@ -104,43 +104,43 @@
     <section id="screen-register" class="screen">
       <h1 class="page-title big">REGISTRATE</h1>
       <div class="field">
-        <label>Nombre y apellido o Razón social</label>
+        <label for="reg-name">Nombre y apellido o Razón social</label>
         <input type="text" id="reg-name" class="box-input">
       </div>
       <div class="field">
-        <label>CUIT o DNI</label>
+        <label for="reg-doc">CUIT o DNI</label>
         <input type="text" id="reg-doc" class="box-input" inputmode="numeric">
       </div>
       <div class="field">
-        <label>Dirección</label>
+        <label for="reg-address">Dirección</label>
         <input type="text" id="reg-address" class="box-input" autocomplete="off" placeholder="Escribí tu dirección...">
         <div class="addr-map" id="reg-map"><div class="mini-map"></div></div>
         <a href="#" class="field-link right" onclick="toggleShipping(); return false;">¿Tenes una dirección de envio?</a>
       </div>
       <div class="field ship-field" id="reg-ship-field" hidden>
-        <label>Dirección de envío</label>
+        <label for="reg-ship">Dirección de envío</label>
         <input type="text" id="reg-ship" class="box-input" autocomplete="off" placeholder="Dirección alternativa...">
         <div class="addr-map" id="reg-ship-map"><div class="mini-map"></div></div>
       </div>
       <div class="grid-3">
-        <div class="field"><label>Código postal</label><input type="text" id="reg-cp" class="box-input" inputmode="numeric"></div>
-        <div class="field"><label>Localidad</label><input type="text" id="reg-loc" class="box-input"></div>
-        <div class="field"><label>Provincia</label><input type="text" id="reg-prov" class="box-input"></div>
+        <div class="field"><label for="reg-cp">Código postal</label><input type="text" id="reg-cp" class="box-input" inputmode="numeric"></div>
+        <div class="field"><label for="reg-loc">Localidad</label><input type="text" id="reg-loc" class="box-input"></div>
+        <div class="field"><label for="reg-prov">Provincia</label><input type="text" id="reg-prov" class="box-input"></div>
       </div>
       <div class="field">
-        <label>E-mail</label>
+        <label for="reg-email">E-mail</label>
         <input type="email" id="reg-email" class="box-input">
       </div>
       <div class="field">
-        <label>Teléfono</label>
+        <label for="reg-phone">Teléfono</label>
         <input type="tel" id="reg-phone" class="box-input" inputmode="tel">
       </div>
       <div class="field">
-        <label>Contraseña</label>
+        <label for="reg-pass">Contraseña</label>
         <input type="password" id="reg-pass" class="box-input">
       </div>
       <div class="field">
-        <label>Repetir contraseña</label>
+        <label for="reg-pass2">Repetir contraseña</label>
         <input type="password" id="reg-pass2" class="box-input">
       </div>
       <div class="center mt">
@@ -192,17 +192,17 @@
       <h1 class="page-title" id="log-title">AFILADO</h1>
       <p class="subtitle" id="log-tool"></p>
       <div class="field">
-        <label>Dirección</label>
+        <label for="log-address">Dirección</label>
         <input type="text" id="log-address" class="box-input" autocomplete="off" placeholder="Escribí tu dirección...">
         <div class="addr-map" id="log-map"><div class="mini-map"></div></div>
         <a href="#" class="field-link right" id="log-saved-link" onclick="useSavedAddress(); return false;">Utilizar dirección previamente cargada</a>
       </div>
       <div class="field">
-        <label>Código postal</label>
+        <label for="log-cp">Código postal</label>
         <input type="text" id="log-cp" class="box-input half" inputmode="numeric">
       </div>
       <div class="field">
-        <label>Agendá tu fecha de retiro</label>
+        <label for="log-date">Agendá tu fecha de retiro</label>
         <input type="date" id="log-date" class="box-input half">
       </div>
       <div class="center mt">
@@ -249,7 +249,7 @@
       <h1 class="page-title">CALENDARIO<br>DE VISITAS</h1>
       <p class="lead">Elegí un día para que uno de nuestros vendedores pase a retirar tus herramientas.</p>
       <div class="field">
-        <label>Fecha de visita</label>
+        <label for="cal-date">Fecha de visita</label>
         <input type="date" id="cal-date" class="box-input half">
       </div>
       <div class="center mt">

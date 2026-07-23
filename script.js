@@ -75,13 +75,17 @@ function goBack(){
 
 /* ==========================  SIDEBAR  =================================== */
 function openSidebar(){
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('sidebar').setAttribute('aria-hidden','false');
+  const sb = document.getElementById('sidebar');
+  sb.classList.add('open');
+  sb.setAttribute('aria-hidden','false');
+  sb.removeAttribute('inert');          // focusable sólo cuando está abierto
   document.getElementById('sidebar-overlay').classList.add('show');
 }
 function closeSidebar(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar').setAttribute('aria-hidden','true');
+  const sb = document.getElementById('sidebar');
+  sb.classList.remove('open');
+  sb.setAttribute('aria-hidden','true');
+  sb.setAttribute('inert','');          // fuera del orden de tabulación al cerrar
   document.getElementById('sidebar-overlay').classList.remove('show');
 }
 function navFromMenu(dest){
@@ -160,6 +164,7 @@ function selectTool(id){
 function renderDetail(){
   const t = current.tool, s = current.service;
   current.dirty = false;          // formulario recién generado = sin cambios
+  current.draft = {};             // evita arrastrar el modelo elegido antes
   document.getElementById('detail-title').textContent = SERVICE_LABEL[s];
   document.getElementById('detail-tool').textContent = t.name;
   const box = document.getElementById('detail-fields');
@@ -167,12 +172,12 @@ function renderDetail(){
 
   // Cantidad (siempre)
   box.appendChild(fieldHTML(`Cantidad de ${t.name.toLowerCase()}`,
-    `<input type="number" min="1" value="1" id="d-qty" class="box-input half" inputmode="numeric">`));
+    `<input type="number" min="1" value="1" id="d-qty" class="box-input half" inputmode="numeric">`, 'd-qty'));
 
   // Sierras -> cantidad de dientes
   if(t.type === 'sierra'){
     const label = s === 'reparacion' ? 'Cantidad de dientes a reparar' : 'Cantidad de dientes';
-    const wrap = fieldHTML(label, `<input type="number" min="0" id="d-teeth" class="box-input half" inputmode="numeric">`);
+    const wrap = fieldHTML(label, `<input type="number" min="0" id="d-teeth" class="box-input half" inputmode="numeric">`, 'd-teeth');
     if(s === 'reparacion'){
       const link = document.createElement('a');
       link.href = '#'; link.className = 'field-link';
@@ -188,43 +193,82 @@ function renderDetail(){
     box.appendChild(buildCustomSelect(`Modelo de ${t.name.toLowerCase()}`, MECHA_MODELS));
   } else {
     box.appendChild(fieldHTML(`Modelo de ${t.name.toLowerCase()}`,
-      `<input type="text" id="d-model" class="box-input" placeholder="Ej: marca / medida">`));
+      `<input type="text" id="d-model" class="box-input" placeholder="Ej: marca / medida">`, 'd-model'));
   }
 }
 
-function fieldHTML(labelText, innerHTML){
+function fieldHTML(labelText, innerHTML, forId){
   const div = document.createElement('div');
   div.className = 'field';
-  div.innerHTML = `<label>${labelText}</label>${innerHTML}`;
+  div.innerHTML = `<label${forId ? ` for="${forId}"` : ''}>${labelText}</label>${innerHTML}`;
   return div;
 }
 
-/* ----- Dropdown personalizado animado --------------------------------- */
+/* ----- Dropdown personalizado animado (accesible por teclado) ---------- */
+let csSeq = 0;
 function buildCustomSelect(labelText, options){
+  const uid = 'cs' + (++csSeq);
   const div = document.createElement('div');
   div.className = 'field';
-  div.innerHTML = `<label>${labelText}</label>`;
+  div.innerHTML = `<label id="${uid}-lbl">${labelText}</label>`;
   const sel = document.createElement('div');
   sel.className = 'cselect';
   sel.innerHTML = `
-    <div class="cselect-trigger" role="button" tabindex="0">
-      <span class="cs-value placeholder">Seleccioná un modelo</span>
-      <span class="cs-arrow">▾</span>
+    <div class="cselect-trigger" role="combobox" tabindex="0" aria-haspopup="listbox"
+         aria-expanded="false" aria-labelledby="${uid}-lbl ${uid}-val">
+      <span class="cs-value placeholder" id="${uid}-val">Seleccioná un modelo</span>
+      <span class="cs-arrow" aria-hidden="true">▾</span>
     </div>
-    <div class="cselect-panel">
-      ${options.map(o => `<div class="cs-option">${o}</div>`).join('')}
-    </div>`;
+    <ul class="cselect-panel" role="listbox" id="${uid}-list" aria-labelledby="${uid}-lbl" tabindex="-1">
+      ${options.map((o,i) => `<li class="cs-option" role="option" id="${uid}-opt${i}" tabindex="-1" aria-selected="false">${o}</li>`).join('')}
+    </ul>`;
   const trigger = sel.querySelector('.cselect-trigger');
   const value   = sel.querySelector('.cs-value');
-  trigger.addEventListener('click', () => sel.classList.toggle('open'));
-  trigger.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); sel.classList.toggle('open'); }});
-  sel.querySelectorAll('.cs-option').forEach(op => {
-    op.addEventListener('click', () => {
-      value.textContent = op.textContent;
-      value.classList.remove('placeholder');
-      current.draft.model = op.textContent;
-      current.dirty = true;
-      sel.classList.remove('open');
+  const opts     = [...sel.querySelectorAll('.cs-option')];
+  let activeIdx = -1;
+
+  const open = () => {
+    sel.classList.add('open');
+    trigger.setAttribute('aria-expanded', 'true');
+    activeIdx = Math.max(0, opts.findIndex(o => o.getAttribute('aria-selected') === 'true'));
+    focusOption(activeIdx);
+  };
+  const close = (focusBack) => {
+    sel.classList.remove('open');
+    trigger.setAttribute('aria-expanded', 'false');
+    if(focusBack) trigger.focus();
+  };
+  const focusOption = (i) => {
+    if(i < 0 || i >= opts.length) return;
+    activeIdx = i;
+    opts.forEach(o => o.classList.remove('active'));
+    opts[i].classList.add('active');
+    opts[i].focus();
+    trigger.setAttribute('aria-activedescendant', opts[i].id);
+  };
+  const choose = (op) => {
+    value.textContent = op.textContent;
+    value.classList.remove('placeholder');
+    opts.forEach(o => o.setAttribute('aria-selected', 'false'));
+    op.setAttribute('aria-selected', 'true');
+    current.draft.model = op.textContent;
+    current.dirty = true;
+    close(true);
+  };
+
+  trigger.addEventListener('click', () => sel.classList.contains('open') ? close() : open());
+  trigger.addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown'){ e.preventDefault(); open(); }
+    else if(e.key === 'Escape'){ close(); }
+  });
+  opts.forEach((op, i) => {
+    op.addEventListener('click', () => choose(op));
+    op.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); choose(op); }
+      else if(e.key === 'ArrowDown'){ e.preventDefault(); focusOption(Math.min(opts.length-1, i+1)); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); i === 0 ? (close(true)) : focusOption(i-1); }
+      else if(e.key === 'Escape'){ e.preventDefault(); close(true); }
+      else if(e.key === 'Tab'){ close(); }
     });
   });
   div.appendChild(sel);
@@ -233,7 +277,11 @@ function buildCustomSelect(labelText, options){
 // Cierra cualquier dropdown abierto al tocar fuera (un solo listener global)
 document.addEventListener('click', e => {
   if(!e.target.closest('.cselect'))
-    document.querySelectorAll('.cselect.open').forEach(s => s.classList.remove('open'));
+    document.querySelectorAll('.cselect.open').forEach(s => {
+      s.classList.remove('open');
+      const t = s.querySelector('.cselect-trigger');
+      if(t) t.setAttribute('aria-expanded', 'false');
+    });
 });
 
 /* ----- Leer el detalle y armar el ítem -------------------------------- */
@@ -320,9 +368,16 @@ function goToLogistics(){
 
 /* ==========================  LOGÍSTICA  =============================== */
 function openLogistics(){
-  const last = cart[cart.length-1] || current;
-  document.getElementById('log-title').textContent = SERVICE_LABEL[(cart[cart.length-1]?.service) || current.service];
-  document.getElementById('log-tool').textContent = cart[cart.length-1]?.tool || (current.tool?.name || '');
+  const services = [...new Set(cart.map(it => it.service))];
+  const totalUnits = cart.reduce((n, it) => n + it.quantity, 0);
+  // Título: si todo el carrito es del mismo servicio lo mostramos; si no, "PEDIDO"
+  document.getElementById('log-title').textContent =
+    services.length === 1 ? SERVICE_LABEL[services[0]] : 'TU PEDIDO';
+  // Subtítulo: una herramienta -> su nombre; varias -> resumen
+  document.getElementById('log-tool').textContent =
+    cart.length === 1 ? cart[0].tool
+    : cart.length > 1 ? `${cart.length} herramientas · ${totalUnits} u.`
+    : (current.tool?.name || '');
   setupAddressField('log-address','log-map', { locateInput:true });
   const savedLink = document.getElementById('log-saved-link');
   savedLink.style.display = localStorage.getItem('wt_saved_address') ? 'inline-block' : 'none';
@@ -362,6 +417,11 @@ function finishOrder(){
     btn.textContent = 'Finalizar'; btn.disabled = false;
     document.getElementById('success-msg').innerHTML =
       `¡PERFECTO!<br>EL VENDEDOR ${vendor.toUpperCase()} VA A ESTAR PASANDO POR TU UBICACIÓN EL DÍA ${fecha.toUpperCase()}`;
+    // El pedido ya se envió: vaciamos carrito y datos para que un próximo pedido arranque limpio.
+    cart = []; refreshCartBadge();
+    clearLogisticsFields();
+    orderData.address = ''; orderData.coordinates = null;
+    current = { service: current.service, tool:null, draft:{} };
     goTo('screen-success');
   }, 1200);
 }
@@ -383,8 +443,16 @@ function resetApp(){
   cart = [];
   current = { service:'afilado', tool:null, draft:{} };
   refreshCartBadge();
+  clearLogisticsFields();                 // no arrastrar dirección/CP/fecha del pedido anterior
+  orderData.address = ''; orderData.coordinates = null;
   historyStack = ['screen-landing','screen-service'];
   goTo('screen-service', true);
+}
+
+function clearLogisticsFields(){
+  ['log-address','log-cp','log-date'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  const map = document.getElementById('log-map');
+  if(map) map.classList.remove('open');   // cierra el mini-mapa de la zona
 }
 
 function openWhatsApp(motivo){
@@ -413,12 +481,14 @@ function flash(text){
 /* ==========================  GOOGLE MAPS  ============================
    Compatible con la API moderna (importLibrary) y con la clásica.
    Si Google Maps no carga, los campos de dirección funcionan como texto. */
-let mapsReady = false, MapCls, MarkerCls, GeocoderCls, AutocompleteCls, geocoder, useAdvanced = false;
+let mapsReady = false, mapsLoading = false, MapCls, MarkerCls, GeocoderCls, AutocompleteCls, geocoder, useAdvanced = false;
 const mapRegistry = {};       // mapWrapId -> { map, marker }
 const pendingFields = [];     // colas de campos hasta que Maps esté listo
+// Para producción, reemplazar por un Map ID propio (Google Cloud Console).
+const MAP_ID = 'DEMO_MAP_ID';
 
 function initMapsApi(){
-  if(mapsReady) return;
+  if(mapsReady || mapsLoading) return;      // evita doble inicialización (callback + DOMContentLoaded)
   if(typeof google === 'undefined' || !google.maps) return;
   try{
     // 1) API clásica (disponible con libraries=places,marker en la URL)
@@ -434,6 +504,7 @@ function initMapsApi(){
     }
     // 2) API moderna (importLibrary)
     if(typeof google.maps.importLibrary === 'function'){
+      mapsLoading = true;
       Promise.all([
         google.maps.importLibrary('maps'),
         google.maps.importLibrary('marker'),
@@ -443,8 +514,8 @@ function initMapsApi(){
         MapCls = maps.Map; MarkerCls = marker.AdvancedMarkerElement; useAdvanced = true;
         GeocoderCls = geo.Geocoder; AutocompleteCls = places.Autocomplete;
         geocoder = new GeocoderCls();
-        mapsReady = true; flushMapQueue();
-      }).catch(e => console.warn('Google Maps: no se pudieron cargar las librerías.', e));
+        mapsReady = true; mapsLoading = false; flushMapQueue();
+      }).catch(e => { mapsLoading = false; console.warn('Google Maps: no se pudieron cargar las librerías.', e); });
     }
   }catch(e){ console.warn('Google Maps no disponible:', e); }
 }
@@ -453,7 +524,7 @@ window.onMapsLoaded = initMapsApi;
 
 function flushMapQueue(){
   const q = pendingFields.splice(0);
-  q.forEach(a => setupAddressField(a[0], a[1], a[2]));
+  q.forEach(a => { try{ setupAddressField(a[0], a[1], a[2]); }catch(e){ console.warn('Maps: campo omitido', a[0], e); } });
 }
 
 /* Helpers para abstraer marcador avanzado vs clásico */
@@ -474,11 +545,18 @@ function setupAddressField(inputId, mapWrapId, opts = {}){
     if(!pendingFields.some(a => a[0] === inputId)) pendingFields.push([inputId, mapWrapId, opts]);
     return;
   }
-  input.dataset.acReady = '1';
-  const ac = new AutocompleteCls(input, {
-    componentRestrictions:{ country:'ar' },
-    fields:['formatted_address','geometry','name'],
-  });
+  let ac;
+  try{
+    ac = new AutocompleteCls(input, {
+      componentRestrictions:{ country:'ar' },
+      fields:['formatted_address','geometry','name'],
+    });
+  }catch(e){
+    // Si el widget de Places no está disponible, el campo sigue como texto simple.
+    console.warn('Places Autocomplete no disponible; el campo funciona como texto.', e);
+    return;
+  }
+  input.dataset.acReady = '1';          // sólo tras crear el widget con éxito
   ac.addListener('place_changed', () => {
     const place = ac.getPlace();
     if(place.geometry){
@@ -487,8 +565,11 @@ function setupAddressField(inputId, mapWrapId, opts = {}){
       orderData.address = input.value;
     }
   });
-  input.addEventListener('keydown', e => {
-    if(e.key === 'Enter'){ e.preventDefault(); geocodeInto(input.value, mapWrapId, input); }
+  // El Enter lo maneja el propio widget de Autocomplete (elige la 1ª sugerencia);
+  // no agregamos un geocode manual para no competir con esa selección.
+  // Al editar el texto a mano, las coordenadas dejan de coincidir: invalidarlas.
+  input.addEventListener('input', () => {
+    if(input.dataset.geo === '1'){ input.dataset.geo = ''; orderData.coordinates = null; }
   });
 }
 
@@ -497,7 +578,7 @@ function ensureMapInstance(mapWrapId, center){
   if(reg) return reg;
   const el = document.getElementById(mapWrapId).querySelector('.mini-map');
   const opts = { zoom:15, center, disableDefaultUI:true, gestureHandling:'greedy' };
-  if(useAdvanced) opts.mapId = 'DEMO_MAP_ID';
+  if(useAdvanced) opts.mapId = MAP_ID;
   const map = new MapCls(el, opts);
   const marker = makeMarker(map, center);
   marker.addListener('dragend', () => reverseGeocode(getMarkerPos(marker), mapWrapId));
@@ -510,9 +591,14 @@ function ensureMapInstance(mapWrapId, center){
 function showZone(mapWrapId, location, input){
   const reg = ensureMapInstance(mapWrapId, location);
   reg.map.setCenter(location); reg.map.setZoom(16); setMarkerPos(reg.marker, location);
-  document.getElementById(mapWrapId).classList.add('open');
-  setTimeout(() => { if(window.google && google.maps && google.maps.event) google.maps.event.trigger(reg.map, 'resize'); reg.map.setCenter(location); }, 260);
+  const wrap = document.getElementById(mapWrapId);
+  wrap.classList.add('open');
+  // Redimensionar el mapa recién cuando termina la animación de apertura del contenedor.
+  const doResize = () => { if(window.google && google.maps && google.maps.event) google.maps.event.trigger(reg.map, 'resize'); reg.map.setCenter(location); };
+  wrap.addEventListener('transitionend', doResize, { once:true });
+  setTimeout(doResize, 450);            // respaldo si transitionend no dispara
   orderData.coordinates = typeof location.lat === 'function' ? { lat:location.lat(), lng:location.lng() } : location;
+  if(input) input.dataset.geo = '1';    // dirección respaldada por coordenadas válidas
 }
 
 function geocodeInto(text, mapWrapId, input){
@@ -539,7 +625,7 @@ function reverseGeocode(pos, mapWrapId){
       const input = mapWrapId === 'log-map' ? document.getElementById('log-address')
                   : mapWrapId === 'reg-map' ? document.getElementById('reg-address')
                   : document.getElementById('reg-ship');
-      if(input){ input.value = res[0].formatted_address; orderData.address = input.value; }
+      if(input){ input.value = res[0].formatted_address; orderData.address = input.value; input.dataset.geo = '1'; }
     }
   });
 }
