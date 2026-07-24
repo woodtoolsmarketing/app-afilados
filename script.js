@@ -3,13 +3,13 @@
    ========================================================================== */
 
 const WHATSAPP_NUMBER = "5491134609057";
-// Vendedor a cargo de cada zona (según la planilla de vendedores).
-const VENDOR_BY_ZONE = {
-  'Oeste':    'Alan Calvi',
-  'Norte':    'Roberto Golik',
-  'La Plata': 'Saad',
-  'CABA':     'Lucas',
-  'Sur':      'Lucas',
+// Vendedores de cada zona (según la planilla). El 1º es quien pasa a retirar.
+const VENDORS_BY_ZONE = {
+  'Oeste':    ['Alan Calvi', 'Sebastián Sayago'],
+  'Norte':    ['Roberto Golik', 'Sebastián Sayago', 'Blasco Jorge'],
+  'La Plata': ['Saad'],
+  'CABA':     ['Lucas', 'Saad'],
+  'Sur':      ['Lucas'],
 };
 
 /* Catálogo de herramientas.
@@ -212,8 +212,10 @@ function updatePickupForAddress(components, formatted){
   const match = resolveZone(components, formatted);
   const note = document.getElementById('pickup-note');
   orderData.pickupDate = null;
-  orderData.zone   = match ? match.zone : null;
-  orderData.vendor = match ? (VENDOR_BY_ZONE[match.zone] || null) : null;
+  orderData.zone = match ? match.zone : null;
+  const zoneVendors = match ? (VENDORS_BY_ZONE[match.zone] || []) : [];
+  orderData.zoneVendors = zoneVendors;
+  orderData.vendor = zoneVendors[0] || null;   // el primero es quien pasa a retirar
   if(match){
     const vendor = orderData.vendor ? ` Te visita <strong>${orderData.vendor}</strong>.` : '';
     note.classList.remove('muted');
@@ -784,6 +786,7 @@ function finishOrder(){
     pedidos: cart,
     logistica:{ direccion: orderData.address, cp: document.getElementById('log-cp').value.trim(),
                 zona: orderData.zone || null, vendor: orderData.vendor || null,
+                vendedores_zona: orderData.zoneVendors || [],
                 fecha_retiro: dateVal, coordenadas: orderData.coordinates }
   };
   console.log('--> ENVIANDO AL SISTEMA COMERCIAL <--\n' + JSON.stringify(payload, null, 2));
@@ -801,7 +804,7 @@ function finishOrder(){
     cart = []; refreshCartBadge();
     clearLogisticsFields();
     orderData.address = ''; orderData.coordinates = null;
-    orderData.vendor = null; orderData.zone = null;
+    orderData.vendor = null; orderData.zone = null; orderData.zoneVendors = [];
     current = { service: current.service, tool:null, draft:{} };
     goTo('screen-success');
   }, 1200);
@@ -828,7 +831,7 @@ function clearLogisticsFields(){
   const map = document.getElementById('log-map');
   if(map) map.classList.remove('open');   // cierra el mini-mapa de la zona
   const chips = document.getElementById('pickup-dates'); if(chips) chips.innerHTML = '';
-  orderData.pickupDate = null; orderData.vendor = null; orderData.zone = null;
+  orderData.pickupDate = null; orderData.vendor = null; orderData.zone = null; orderData.zoneVendors = [];
 }
 
 function openWhatsApp(motivo){
