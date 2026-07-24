@@ -789,7 +789,7 @@ function finishOrder(){
                 vendedores_zona: orderData.zoneVendors || [],
                 fecha_retiro: dateVal, coordenadas: orderData.coordinates }
   };
-  console.log('--> ENVIANDO AL SISTEMA COMERCIAL <--\n' + JSON.stringify(payload, null, 2));
+  // Acá se enviaría `payload` al sistema comercial (backend).
 
   const fecha = formatDate(dateVal);
   const vendorLine = orderData.vendor
@@ -950,7 +950,7 @@ function setupAddressField(inputId, mapWrapId, opts = {}){
   // no agregamos un geocode manual para no competir con esa selección.
   // Al editar el texto a mano, las coordenadas dejan de coincidir: invalidarlas.
   input.addEventListener('input', () => {
-    if(input.dataset.geo === '1'){ input.dataset.geo = ''; orderData.coordinates = null; }
+    if(input.dataset.geo === '1'){ input.dataset.geo = ''; if(mapWrapId === 'log-map') orderData.coordinates = null; }
   });
 }
 
@@ -978,7 +978,10 @@ function showZone(mapWrapId, location, input){
   const doResize = () => { if(window.google && google.maps && google.maps.event) google.maps.event.trigger(reg.map, 'resize'); reg.map.setCenter(location); };
   wrap.addEventListener('transitionend', doResize, { once:true });
   setTimeout(doResize, 450);            // respaldo si transitionend no dispara
-  orderData.coordinates = typeof location.lat === 'function' ? { lat:location.lat(), lng:location.lng() } : location;
+  // Las coordenadas del pedido son solo las del retiro (campo de logística).
+  if(mapWrapId === 'log-map'){
+    orderData.coordinates = typeof location.lat === 'function' ? { lat:location.lat(), lng:location.lng() } : location;
+  }
   if(input) input.dataset.geo = '1';    // dirección respaldada por coordenadas válidas
 }
 
@@ -1002,7 +1005,7 @@ function geocodeInto(text, mapWrapId, input){
 function reverseGeocode(pos, mapWrapId){
   if(!geocoder) return;
   const loc = { lat: typeof pos.lat==='function'?pos.lat():pos.lat, lng: typeof pos.lng==='function'?pos.lng():pos.lng };
-  orderData.coordinates = loc;
+  if(mapWrapId === 'log-map') orderData.coordinates = loc;
   geocoder.geocode({ location:loc }, (res, status) => {
     if(status === 'OK' && res[0]){
       const input = mapWrapId === 'log-map' ? document.getElementById('log-address')
