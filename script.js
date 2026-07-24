@@ -24,6 +24,25 @@ const VENDOR_PHONES = {
 const FALLBACK_VENDOR = 'Emmanuel Capalbo';
 const FALLBACK_PHONE  = '5491157528428';
 
+// Partido (municipio) -> zona. Cubre las localidades aledañas de cada municipio
+// aunque no estén listadas una por una (clave = administrative_area_level_2 de Google).
+const PARTIDO_ZONE = {
+  // Norte
+  'san isidro':'Norte', 'vicente lopez':'Norte', 'san fernando':'Norte', 'tigre':'Norte',
+  'general san martin':'Norte', 'san martin':'Norte', 'san miguel':'Norte',
+  'malvinas argentinas':'Norte', 'escobar':'Norte',
+  // Oeste
+  'moron':'Oeste', 'hurlingham':'Oeste', 'ituzaingo':'Oeste', 'tres de febrero':'Oeste',
+  'la matanza':'Oeste', 'merlo':'Oeste', 'moreno':'Oeste', 'general rodriguez':'Oeste',
+  'lujan':'Oeste', 'marcos paz':'Oeste', 'mercedes':'Oeste', 'jose c paz':'Oeste', 'pilar':'Oeste',
+  // Sur
+  'lanus':'Sur', 'lomas de zamora':'Sur', 'avellaneda':'Sur', 'quilmes':'Sur',
+  'berazategui':'Sur', 'florencio varela':'Sur', 'almirante brown':'Sur',
+  'esteban echeverria':'Sur', 'ezeiza':'Sur', 'canuelas':'Sur', 'presidente peron':'Sur', 'san vicente':'Sur',
+  // La Plata
+  'la plata':'La Plata', 'berisso':'La Plata', 'ensenada':'La Plata',
+};
+
 /* Catálogo de herramientas.
    type: 'sierra'  -> cantidad + cantidad de dientes + modelo (texto)
          'mechas'  -> cantidad + modelo (dropdown animado)
@@ -59,7 +78,7 @@ const DIA_ABREV  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 
 const LOCALITIES = [
   // ---- CABA ----
-  { name:'Capital', zone:'CABA', days:[2,4,5], aliases:['ciudad autonoma de buenos aires','ciudad de buenos aires','caba','capital federal'] },
+  { name:'Capital', zone:'CABA', days:[2,4], aliases:['ciudad autonoma de buenos aires','ciudad de buenos aires','caba','capital federal'] },
   { name:'Palermo', zone:'CABA', days:[2,4,5] },
   { name:'Paternal', zone:'CABA', days:[2,4,5] },
   { name:'Floresta', zone:'CABA', days:[2,4,5] },
@@ -127,6 +146,7 @@ const LOCALITIES = [
   { name:'General Pacheco', zone:'Norte', days:[4], aliases:['pacheco'] },
   { name:'Tigre', zone:'Norte', days:[3,4] },
   { name:'San Martín', zone:'Norte', days:[2] },
+  { name:'San Andrés', zone:'Norte', days:[2] },
   { name:'Villa Ballester', zone:'Norte', days:[2], aliases:['v ballester'] },
   { name:'Martínez', zone:'Norte', days:[2], aliases:['martelli'] },
   { name:'Florida', zone:'Norte', days:[2] },
@@ -166,9 +186,11 @@ function resolveZone(components, formatted){
   // Fuera de Buenos Aires / CABA no hay cobertura de zonas. Esto evita, por
   // ejemplo, que el departamento "Capital" de Tucumán o Córdoba matchee CABA.
   const inBA = /buenos aires/.test(normLoc(formatted));
+  let partido = null;
   if(Array.isArray(components)){
     const prov = components.find(c => c.types && c.types.includes('administrative_area_level_1'));
     if(prov && !normLoc(prov.long_name).includes('buenos aires')) return null;
+    // 1) Localidad puntual (barrio / localidad)
     const order = ['sublocality_level_1','sublocality','neighborhood','locality','administrative_area_level_2','administrative_area_level_1'];
     for(const type of order){
       for(const c of components){
@@ -178,11 +200,18 @@ function resolveZone(components, formatted){
         }
       }
     }
+    // 2) Partido -> zona aledaña (cubre localidades no listadas del municipio)
+    const part = components.find(c => c.types && c.types.includes('administrative_area_level_2'));
+    if(part){
+      const z = PARTIDO_ZONE[normLoc(part.long_name).replace(/^partido de /, '')];
+      if(z) partido = { name: part.long_name.replace(/^Partido de\s+/i, ''), zone: z, days: [] };
+    }
   }
-  if(!inBA) return null;   // sin "buenos aires" en el texto no forzamos coincidencias
-  const nf = ' ' + normLoc(formatted) + ' ';
-  for(const { key, e } of LOC_KEYS){ if(nf.includes(' ' + key + ' ')) return e; }
-  return null;
+  if(inBA){
+    const nf = ' ' + normLoc(formatted) + ' ';
+    for(const { key, e } of LOC_KEYS){ if(nf.includes(' ' + key + ' ')) return e; }
+  }
+  return partido;   // si no hubo localidad puntual, cae en la zona del partido (o null)
 }
 function diasTexto(days){
   const names = days.slice().sort((a, b) => a - b).map(d => DIA_NOMBRE[d]);
@@ -237,8 +266,13 @@ function updatePickupForAddress(components, formatted){
   if(match){
     const vendor = orderData.vendor ? ` Te visita <strong>${orderData.vendor}</strong>.` : '';
     note.classList.remove('muted');
-    note.innerHTML = `Pasamos por <strong>${match.name}</strong> (Zona ${match.zone}) los <strong>${diasTexto(match.days)}</strong>.${vendor} Elegí tu día:`;
-    renderPickupChips(match.days);
+    if(match.days && match.days.length){
+      note.innerHTML = `Pasamos por <strong>${match.name}</strong> (Zona ${match.zone}) los <strong>${diasTexto(match.days)}</strong>.${vendor} Elegí tu día:`;
+      renderPickupChips(match.days);
+    } else {
+      note.innerHTML = `Estás en la <strong>Zona ${match.zone}</strong>.${vendor} Elegí un día y lo coordinamos:`;
+      renderPickupChips([1,2,3,4,5]);
+    }
   } else {
     note.classList.add('muted');
     note.textContent = 'No detectamos tu zona. Elegí un día y lo coordinamos con un vendedor:';
