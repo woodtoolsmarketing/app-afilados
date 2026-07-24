@@ -5,8 +5,8 @@
 const WHATSAPP_NUMBER = "5491134609057";
 // Vendedores de cada zona (según la planilla). El 1º es quien pasa a retirar.
 const VENDORS_BY_ZONE = {
-  'Oeste':    ['Alan Calvi', 'Sebastián Sayago'],
-  'Norte':    ['Roberto Golik', 'Sebastián Sayago', 'Blasco Jorge'],
+  'Oeste':    ['Sebastián Sayago', 'Alan Calvi'],
+  'Norte':    ['Sebastián Sayago', 'Roberto Golik', 'Blasco Jorge'],
   'La Plata': ['Saad'],
   'CABA':     ['Lucas', 'Saad'],
   'Sur':      ['Lucas'],
