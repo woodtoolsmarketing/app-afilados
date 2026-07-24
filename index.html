@@ -154,7 +154,7 @@
       <div class="stack big-choices">
         <button class="btn btn-choice" onclick="startService('afilado')">AFILADO</button>
         <button class="btn btn-choice" onclick="startService('reparacion')">REPARACIÓN</button>
-        <button class="btn btn-choice small-text" onclick="openWhatsApp('Quiero hablar con un vendedor')">QUIERO HABLAR CON UN VENDEDOR</button>
+        <button class="btn btn-choice small-text" onclick="goTo('screen-chat')">QUIERO HABLAR CON UN VENDEDOR</button>
       </div>
     </section>
 
@@ -225,16 +225,29 @@
       </div>
     </section>
 
-    <!-- CHAT / CONTACT REASONS -->
+    <!-- CHAT / FORMULARIO DE CONTACTO -->
     <section id="screen-chat" class="screen">
-      <h1 class="page-title">HABLAR CON<br>UN VENDEDOR</h1>
-      <p class="subtitle glow">Elegí el motivo</p>
-      <div class="stack">
-        <button class="btn btn-outline start" onclick="openWhatsApp('Cotización de afilado/reparación')">Cotización de afilado / reparación</button>
-        <button class="btn btn-outline start" onclick="openWhatsApp('Consulta por tiempos de entrega')">Tiempos de entrega</button>
-        <button class="btn btn-outline start" onclick="openWhatsApp('Aviso de entrega')">Aviso de entrega</button>
-        <button class="btn btn-outline start" onclick="openWhatsApp('Dirección alternativa')">Dirección alternativa</button>
-        <button class="btn btn-outline start" onclick="openWhatsApp('Otras consultas')">Otras consultas</button>
+      <h1 class="page-title">QUIERO HABLAR CON<br>UN VENDEDOR</h1>
+      <div class="field">
+        <label for="chat-name">Nombre y apellido o Razón social</label>
+        <input type="text" id="chat-name" class="box-input">
+      </div>
+      <div class="field">
+        <label for="chat-doc">CUIT o DNI</label>
+        <input type="text" id="chat-doc" class="box-input" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="chat-address">Dirección</label>
+        <input type="text" id="chat-address" class="box-input" autocomplete="off" placeholder="Escribí tu dirección...">
+        <div class="addr-map" id="chat-map"><div class="mini-map"></div></div>
+      </div>
+      <div id="chat-motivo"></div>
+      <div class="field">
+        <label for="chat-desc">Descripción</label>
+        <textarea id="chat-desc" class="box-input" rows="5" placeholder="Contanos tu consulta..."></textarea>
+      </div>
+      <div class="center mt">
+        <button class="btn btn-send" onclick="sendVendorMessage()">Enviar mensaje</button>
       </div>
     </section>
 

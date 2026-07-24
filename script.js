@@ -3,14 +3,26 @@
    ========================================================================== */
 
 const WHATSAPP_NUMBER = "5491134609057";
-// Vendedores de cada zona (según la planilla). El 1º es quien pasa a retirar.
+// Vendedores de cada zona (según la planilla). El 1º es quien pasa a retirar / recibe la consulta.
 const VENDORS_BY_ZONE = {
   'Oeste':    ['Sebastián Sayago', 'Alan Calvi'],
-  'Norte':    ['Sebastián Sayago', 'Roberto Golik', 'Blasco Jorge'],
-  'La Plata': ['Saad'],
-  'CABA':     ['Lucas', 'Saad'],
-  'Sur':      ['Lucas'],
+  'Norte':    ['Sebastián Sayago', 'Roberto Golik', 'Jorge Blasco'],
+  'La Plata': ['Nicolas Saad'],
+  'CABA':     ['Lucas Cabaña', 'Nicolas Saad'],
+  'Sur':      ['Lucas Cabaña'],
 };
+// WhatsApp de cada vendedor. Si la dirección no cae en ninguna zona -> Emmanuel.
+const VENDOR_PHONES = {
+  'Jorge Blasco':     '5491145640940',
+  'Sebastián Sayago': '5491134609120',
+  'Lucas Cabaña':     '5491145640831',
+  'Alan Calvi':       '5491156321012',
+  'Roberto Golik':    '5491164591316',
+  'Luis Quevedo':     '5491168457778',
+  'Nicolas Saad':     '5491157528427',
+};
+const FALLBACK_VENDOR = 'Emmanuel Capalbo';
+const FALLBACK_PHONE  = '5491157528428';
 
 /* Catálogo de herramientas.
    type: 'sierra'  -> cantidad + cantidad de dientes + modelo (texto)
@@ -151,7 +163,12 @@ const LOC_KEYS = LOCALITIES
   .sort((a, b) => b.key.length - a.key.length);
 
 function resolveZone(components, formatted){
+  // Fuera de Buenos Aires / CABA no hay cobertura de zonas. Esto evita, por
+  // ejemplo, que el departamento "Capital" de Tucumán o Córdoba matchee CABA.
+  const inBA = /buenos aires/.test(normLoc(formatted));
   if(Array.isArray(components)){
+    const prov = components.find(c => c.types && c.types.includes('administrative_area_level_1'));
+    if(prov && !normLoc(prov.long_name).includes('buenos aires')) return null;
     const order = ['sublocality_level_1','sublocality','neighborhood','locality','administrative_area_level_2','administrative_area_level_1'];
     for(const type of order){
       for(const c of components){
@@ -162,6 +179,7 @@ function resolveZone(components, formatted){
       }
     }
   }
+  if(!inBA) return null;   // sin "buenos aires" en el texto no forzamos coincidencias
   const nf = ' ' + normLoc(formatted) + ' ';
   for(const { key, e } of LOC_KEYS){ if(nf.includes(' ' + key + ' ')) return e; }
   return null;
@@ -417,7 +435,7 @@ function renderDetail(){
     `<input type="number" min="1" value="1" id="d-qty" class="box-input half" inputmode="numeric">`, 'd-qty'));
 
   if(t.type === 'mechas'){
-    box.appendChild(buildCustomSelect(`Modelo de ${t.name.toLowerCase()}`, MECHA_MODELS));
+    box.appendChild(buildCustomSelect(`Modelo de ${t.name.toLowerCase()}`, MECHA_MODELS, null, 'Seleccioná un modelo'));
   } else {
     box.appendChild(fieldHTML(`Modelo de ${t.name.toLowerCase()}`,
       `<input type="text" id="d-model" class="box-input" placeholder="Ej: marca / medida">`, 'd-model'));
@@ -556,10 +574,12 @@ function fieldHTML(labelText, innerHTML, forId){
   return div;
 }
 
-/* ----- Dropdown personalizado animado (accesible por teclado) ---------- */
+/* ----- Dropdown personalizado animado (accesible por teclado) ----------
+   onSelect(valor) opcional; si no se pasa, escribe en current.draft.model. */
 let csSeq = 0;
-function buildCustomSelect(labelText, options){
+function buildCustomSelect(labelText, options, onSelect, placeholder){
   const uid = 'cs' + (++csSeq);
+  const ph = placeholder || 'Seleccioná una opción';
   const div = document.createElement('div');
   div.className = 'field';
   div.innerHTML = `<label id="${uid}-lbl">${labelText}</label>`;
@@ -568,7 +588,7 @@ function buildCustomSelect(labelText, options){
   sel.innerHTML = `
     <div class="cselect-trigger" role="combobox" tabindex="0" aria-haspopup="listbox"
          aria-expanded="false" aria-labelledby="${uid}-lbl ${uid}-val">
-      <span class="cs-value placeholder" id="${uid}-val">Seleccioná un modelo</span>
+      <span class="cs-value placeholder" id="${uid}-val">${ph}</span>
       <span class="cs-arrow" aria-hidden="true">▾</span>
     </div>
     <ul class="cselect-panel" role="listbox" id="${uid}-list" aria-labelledby="${uid}-lbl" tabindex="-1">
@@ -603,8 +623,8 @@ function buildCustomSelect(labelText, options){
     value.classList.remove('placeholder');
     opts.forEach(o => o.setAttribute('aria-selected', 'false'));
     op.setAttribute('aria-selected', 'true');
-    current.draft.model = op.textContent;
-    current.dirty = true;
+    if(onSelect){ onSelect(op.textContent); }
+    else { current.draft.model = op.textContent; current.dirty = true; }
     close(true);
   };
 
@@ -839,6 +859,59 @@ function openWhatsApp(motivo){
   window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
+/* ==========================  HABLAR CON UN VENDEDOR  ================== */
+let chatData = { zone:null, vendor:null, motivo:null };
+
+// Detecta la zona (y su vendedor) a partir de la dirección del formulario.
+function updateChatZone(components, formatted){
+  const match = resolveZone(components, formatted);
+  chatData.zone = match ? match.zone : null;
+  const vendors = match ? (VENDORS_BY_ZONE[match.zone] || []) : [];
+  chatData.vendor = vendors[0] || null;
+}
+
+function sendVendorMessage(){
+  const name = document.getElementById('chat-name').value.trim();
+  const doc  = document.getElementById('chat-doc').value.trim();
+  const addr = document.getElementById('chat-address').value.trim();
+  const desc = document.getElementById('chat-desc').value.trim();
+  const motivo = chatData.motivo;
+  if(!name){ alert('Ingresá tu nombre o razón social.'); return; }
+  if(!addr){ alert('Ingresá tu dirección.'); return; }
+  if(!motivo){ alert('Elegí el motivo de consulta.'); return; }
+
+  // Vendedor de la zona; si no hay zona, va a Emmanuel Capalbo.
+  const known  = chatData.vendor && VENDOR_PHONES[chatData.vendor];
+  const vendor = known ? chatData.vendor : FALLBACK_VENDOR;
+  const phone  = known ? VENDOR_PHONES[chatData.vendor] : FALLBACK_PHONE;
+
+  const msg = [
+    'Hola! Quiero hablar con un vendedor.',
+    `*Nombre / Razón social:* ${name}`,
+    doc  ? `*CUIT / DNI:* ${doc}` : null,
+    `*Dirección:* ${addr}`,
+    chatData.zone ? `*Zona:* ${chatData.zone}` : null,
+    `*Motivo:* ${motivo}`,
+    desc ? `*Descripción:* ${desc}` : null,
+    orderData.clientNumber ? `*N° de cliente:* ${orderData.clientNumber}` : null,
+  ].filter(Boolean).join('\n');
+
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  flash(`Mensaje enviado a ${vendor} ✓`);
+  clearChatForm();
+}
+
+function clearChatForm(){
+  ['chat-name','chat-doc','chat-address','chat-desc'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  const map = document.getElementById('chat-map'); if(map) map.classList.remove('open');
+  const val = document.querySelector('#chat-motivo .cs-value');
+  if(val){ val.textContent = 'Seleccioná un motivo'; val.classList.add('placeholder'); }
+  document.querySelectorAll('#chat-motivo .cs-option').forEach(o => o.setAttribute('aria-selected','false'));
+  chatData = { zone:null, vendor:null, motivo:null };
+}
+
 /* ==========================  TOAST  ================================== */
 let toastTimer;
 function flash(text){
@@ -944,6 +1017,7 @@ function setupAddressField(inputId, mapWrapId, opts = {}){
       orderData.address = input.value;
       fillPostalCode(mapWrapId, place.address_components);
       if(mapWrapId === 'log-map') updatePickupForAddress(place.address_components, input.value);
+      else if(mapWrapId === 'chat-map') updateChatZone(place.address_components, input.value);
     }
   });
   // El Enter lo maneja el propio widget de Autocomplete (elige la 1ª sugerencia);
@@ -996,6 +1070,7 @@ function geocodeInto(text, mapWrapId, input){
       orderData.address = input.value;
       fillPostalCode(mapWrapId, res[0].address_components);
       if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, input.value);
+      else if(mapWrapId === 'chat-map') updateChatZone(res[0].address_components, input.value);
     } else {
       alert('No encontramos esa dirección. Probá con más detalle.');
     }
@@ -1008,12 +1083,14 @@ function reverseGeocode(pos, mapWrapId){
   if(mapWrapId === 'log-map') orderData.coordinates = loc;
   geocoder.geocode({ location:loc }, (res, status) => {
     if(status === 'OK' && res[0]){
-      const input = mapWrapId === 'log-map' ? document.getElementById('log-address')
-                  : mapWrapId === 'reg-map' ? document.getElementById('reg-address')
+      const input = mapWrapId === 'log-map'  ? document.getElementById('log-address')
+                  : mapWrapId === 'reg-map'  ? document.getElementById('reg-address')
+                  : mapWrapId === 'chat-map' ? document.getElementById('chat-address')
                   : document.getElementById('reg-ship');
       if(input){ input.value = res[0].formatted_address; orderData.address = input.value; input.dataset.geo = '1'; }
       fillPostalCode(mapWrapId, res[0].address_components);
       if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, res[0].formatted_address);
+      else if(mapWrapId === 'chat-map') updateChatZone(res[0].address_components, res[0].formatted_address);
     }
   });
 }
@@ -1022,9 +1099,17 @@ function reverseGeocode(pos, mapWrapId){
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('cart-btn').addEventListener('click', renderCart);
   document.getElementById('detail-fields').addEventListener('input', () => { current.dirty = true; });
-  setupAddressField('reg-address','reg-map');   // se encola si Maps aún no cargó
+  setupAddressField('reg-address','reg-map');    // se encola si Maps aún no cargó
+  setupAddressField('chat-address','chat-map');  // dirección del formulario de contacto
   refreshCartBadge();
   initMapsApi();                                 // por si Maps ya estaba disponible
+
+  // "Hablar con un vendedor": desplegable de motivo de consulta
+  const motivoBox = document.getElementById('chat-motivo');
+  if(motivoBox){
+    motivoBox.appendChild(buildCustomSelect('Motivo de consulta',
+      ['Afilado', 'Reparación', 'Otro'], v => { chatData.motivo = v; }, 'Seleccioná un motivo'));
+  }
 
   // Calendario de visitas: búsqueda por localidad
   const calSearch = document.getElementById('cal-search');
