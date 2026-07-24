@@ -8,7 +8,7 @@ const VENDOR_BY_ZONE = {
   'Oeste':    'Alan Calvi',
   'Norte':    'Roberto Golik',
   'La Plata': 'Saad',
-  'CABA':     'Saad',
+  'CABA':     'Lucas',
   'Sur':      'Lucas',
 };
 
