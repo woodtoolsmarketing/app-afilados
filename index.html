@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Afilador digital WoodTools</title>
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=3">
 <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA0r9W1pgN0SxZKRtAAGAUoX1d6ClWpt3c&libraries=places,marker&loading=async&callback=onMapsLoaded"></script>
 </head>
 <body>
@@ -241,6 +241,11 @@
         <input type="text" id="chat-address" class="box-input" autocomplete="off" placeholder="Escribí tu dirección...">
         <div class="addr-map" id="chat-map"><div class="mini-map"></div></div>
       </div>
+      <div class="field" id="chat-day-field" hidden>
+        <label>Día para coordinar la visita</label>
+        <p id="chat-note" class="pickup-note"></p>
+        <div id="chat-dates" class="pickup-dates"></div>
+      </div>
       <div id="chat-motivo"></div>
       <div class="field">
         <label for="chat-desc">Descripción</label>
@@ -352,6 +357,6 @@
 
 </div>
 
-<script src="script.js?v=2"></script>
+<script src="script.js?v=3"></script>
 </body>
 </html>

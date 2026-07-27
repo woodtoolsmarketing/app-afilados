@@ -232,8 +232,9 @@ function nextPickupDates(allowedDays, count){
   }
   return dates;
 }
-function renderPickupChips(allowedDays){
-  const cont = document.getElementById('pickup-dates');
+function renderPickupChips(allowedDays, containerId, onPick){
+  const cont = document.getElementById(containerId || 'pickup-dates');
+  if(!cont) return;
   cont.innerHTML = '';
   nextPickupDates(allowedDays, 8).forEach(d => {
     const b = document.createElement('button');
@@ -243,7 +244,7 @@ function renderPickupChips(allowedDays){
     b.addEventListener('click', () => {
       cont.querySelectorAll('.pickup-chip').forEach(c => c.classList.remove('sel'));
       b.classList.add('sel');
-      orderData.pickupDate = b.dataset.iso;
+      if(onPick) onPick(b.dataset.iso); else orderData.pickupDate = b.dataset.iso;
     });
     cont.appendChild(b);
   });
@@ -894,14 +895,38 @@ function openWhatsApp(motivo){
 }
 
 /* ==========================  HABLAR CON UN VENDEDOR  ================== */
-let chatData = { zone:null, vendor:null, motivo:null };
+let chatData = { zone:null, vendor:null, motivo:null, day:null, days:[] };
 
-// Detecta la zona (y su vendedor) a partir de la dirección del formulario.
+// Detecta la zona (y su vendedor) a partir de la dirección del formulario, y
+// muestra los días de visita para coordinar (misma lógica que el calendario).
 function updateChatZone(components, formatted){
   const match = resolveZone(components, formatted);
   chatData.zone = match ? match.zone : null;
   const vendors = match ? (VENDORS_BY_ZONE[match.zone] || []) : [];
   chatData.vendor = vendors[0] || null;
+  chatData.day = null;
+  chatData.days = (match && match.days && match.days.length) ? match.days : [];
+  renderChatDays(match);
+}
+
+// Días de visita en la ubicación del cliente (calendario de visitas).
+function renderChatDays(match){
+  const field = document.getElementById('chat-day-field');
+  const note  = document.getElementById('chat-note');
+  if(!field || !note) return;
+  field.hidden = false;
+  const days = (match && match.days && match.days.length) ? match.days : [1,2,3,4,5];
+  if(match && match.days && match.days.length){
+    note.classList.remove('muted');
+    note.innerHTML = `Pasamos por <strong>${match.name}</strong> (Zona ${match.zone}) los <strong>${diasTexto(match.days)}</strong>. Elegí un día para coordinar:`;
+  } else if(match){
+    note.classList.remove('muted');
+    note.innerHTML = `Estás en la <strong>Zona ${match.zone}</strong>. Elegí un día para coordinar la visita:`;
+  } else {
+    note.classList.add('muted');
+    note.textContent = 'Elegí un día tentativo para coordinar la visita:';
+  }
+  renderPickupChips(days, 'chat-dates', iso => { chatData.day = iso; });
 }
 
 function sendVendorMessage(){
@@ -919,6 +944,10 @@ function sendVendorMessage(){
   const vendor = known ? chatData.vendor : FALLBACK_VENDOR;
   const phone  = known ? VENDOR_PHONES[chatData.vendor] : FALLBACK_PHONE;
 
+  const dayLine = chatData.day
+    ? `*Día solicitado:* ${formatDate(chatData.day)}`
+    : (chatData.days.length ? `*Días de visita en tu zona:* ${diasTexto(chatData.days)}` : null);
+
   const msg = [
     'Hola! Quiero hablar con un vendedor.',
     `*Nombre / Razón social:* ${name}`,
@@ -926,6 +955,7 @@ function sendVendorMessage(){
     `*Dirección:* ${addr}`,
     chatData.zone ? `*Zona:* ${chatData.zone}` : null,
     `*Motivo:* ${motivo}`,
+    dayLine,
     desc ? `*Descripción:* ${desc}` : null,
     orderData.clientNumber ? `*N° de cliente:* ${orderData.clientNumber}` : null,
   ].filter(Boolean).join('\n');
@@ -943,7 +973,9 @@ function clearChatForm(){
   const val = document.querySelector('#chat-motivo .cs-value');
   if(val){ val.textContent = 'Seleccioná un motivo'; val.classList.add('placeholder'); }
   document.querySelectorAll('#chat-motivo .cs-option').forEach(o => o.setAttribute('aria-selected','false'));
-  chatData = { zone:null, vendor:null, motivo:null };
+  const dayField = document.getElementById('chat-day-field'); if(dayField) dayField.hidden = true;
+  const dates = document.getElementById('chat-dates'); if(dates) dates.innerHTML = '';
+  chatData = { zone:null, vendor:null, motivo:null, day:null, days:[] };
 }
 
 /* ==========================  TOAST  ================================== */
