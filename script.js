@@ -181,6 +181,14 @@ const LOC_MAP = (() => {
 const LOC_KEYS = LOCALITIES
   .flatMap(e => [e.name, ...(e.aliases||[])].map(n => ({ key: normLoc(n), e })))
   .sort((a, b) => b.key.length - a.key.length);
+// Días en que el vendedor pasa por cada zona (unión de sus localidades). Se usa
+// cuando solo conocemos el partido/zona y no la localidad puntual.
+const ZONE_DAYS = (() => {
+  const m = {};
+  LOCALITIES.forEach(e => { const s = (m[e.zone] = m[e.zone] || new Set()); e.days.forEach(d => s.add(d)); });
+  Object.keys(m).forEach(z => m[z] = [...m[z]].sort((a, b) => a - b));
+  return m;
+})();
 
 function resolveZone(components, formatted){
   // Fuera de Buenos Aires / CABA no hay cobertura de zonas. Esto evita, por
@@ -216,6 +224,13 @@ function resolveZone(components, formatted){
 function diasTexto(days){
   const names = days.slice().sort((a, b) => a - b).map(d => DIA_NOMBRE[d]);
   return names.length <= 1 ? (names[0] || '') : names.slice(0, -1).join(', ') + ' y ' + names[names.length - 1];
+}
+// Días efectivos de visita: la localidad puntual si la hay; si solo hay
+// partido/zona, los días en que el vendedor recorre esa zona.
+function daysForMatch(match){
+  if(!match) return [1,2,3,4,5];
+  if(match.days && match.days.length) return match.days;
+  return ZONE_DAYS[match.zone] || [1,2,3,4,5];
 }
 
 /* ----- Fechas de retiro disponibles según los días de la zona ---------- */
@@ -266,14 +281,11 @@ function updatePickupForAddress(components, formatted){
   orderData.vendor = zoneVendors[0] || null;   // el primero es quien pasa a retirar
   if(match){
     const vendor = orderData.vendor ? ` Te visita <strong>${orderData.vendor}</strong>.` : '';
+    const days = daysForMatch(match);
+    const lugar = (match.days && match.days.length) ? match.name : `la Zona ${match.zone}`;
     note.classList.remove('muted');
-    if(match.days && match.days.length){
-      note.innerHTML = `Pasamos por <strong>${match.name}</strong> (Zona ${match.zone}) los <strong>${diasTexto(match.days)}</strong>.${vendor} Elegí tu día:`;
-      renderPickupChips(match.days);
-    } else {
-      note.innerHTML = `Estás en la <strong>Zona ${match.zone}</strong>.${vendor} Elegí un día y lo coordinamos:`;
-      renderPickupChips([1,2,3,4,5]);
-    }
+    note.innerHTML = `Pasamos por <strong>${lugar}</strong> los <strong>${diasTexto(days)}</strong>.${vendor} Elegí tu día:`;
+    renderPickupChips(days);
   } else {
     note.classList.add('muted');
     note.textContent = 'No detectamos tu zona. Elegí un día y lo coordinamos con un vendedor:';
@@ -905,7 +917,7 @@ function updateChatZone(components, formatted){
   const vendors = match ? (VENDORS_BY_ZONE[match.zone] || []) : [];
   chatData.vendor = vendors[0] || null;
   chatData.day = null;
-  chatData.days = (match && match.days && match.days.length) ? match.days : [];
+  chatData.days = match ? daysForMatch(match) : [];
   renderChatDays(match);
 }
 
@@ -915,13 +927,11 @@ function renderChatDays(match){
   const note  = document.getElementById('chat-note');
   if(!field || !note) return;
   field.hidden = false;
-  const days = (match && match.days && match.days.length) ? match.days : [1,2,3,4,5];
-  if(match && match.days && match.days.length){
+  const days = daysForMatch(match);
+  if(match){
+    const lugar = (match.days && match.days.length) ? match.name : `la Zona ${match.zone}`;
     note.classList.remove('muted');
-    note.innerHTML = `Pasamos por <strong>${match.name}</strong> (Zona ${match.zone}) los <strong>${diasTexto(match.days)}</strong>. Elegí un día para coordinar:`;
-  } else if(match){
-    note.classList.remove('muted');
-    note.innerHTML = `Estás en la <strong>Zona ${match.zone}</strong>. Elegí un día para coordinar la visita:`;
+    note.innerHTML = `Pasamos por <strong>${lugar}</strong> los <strong>${diasTexto(days)}</strong>. Elegí un día para coordinar:`;
   } else {
     note.classList.add('muted');
     note.textContent = 'Elegí un día tentativo para coordinar la visita:';
