@@ -169,6 +169,40 @@ const LOCALITIES = [
   { name:'Don Torcuato', zone:'Norte', days:[5] },
 ];
 
+// Coordenadas de cada localidad visitada (para el radio de 5 km).
+const COORDS = {
+  'Capital':[-34.6037,-58.3816],'Palermo':[-34.5781,-58.4265],'Paternal':[-34.5959,-58.4716],
+  'Floresta':[-34.6282,-58.4844],'Villa Crespo':[-34.5947,-58.4443],'Congreso':[-34.6097,-58.3903],
+  'Nueva Pompeya':[-34.6501,-58.4254],'Barracas':[-34.6454,-58.3813],'Caballito':[-34.6159,-58.4406],
+  'Bajo Flores':[-34.6473,-58.4492],'Flores':[-34.6375,-58.4601],'La Plata':[-34.9205,-57.9536],
+  'City Bell':[-34.8783,-58.0430],'Villa Elisa':[-34.8535,-58.0791],'Berisso':[-34.8969,-57.9544],
+  'Los Hornos':[-34.9601,-57.9722],'Abasto':[-34.9854,-58.0871],'Lanús':[-34.7067,-58.3917],
+  'Remedios de Escalada':[-34.7212,-58.3985],'Temperley':[-34.7678,-58.3793],'Lomas de Zamora':[-34.7612,-58.4302],
+  'Llavallol':[-34.7965,-58.4292],'9 de Abril':[-34.7561,-58.4866],'Bernal':[-34.7089,-58.2827],
+  'Quilmes':[-34.7206,-58.2546],'Ezpeleta':[-34.7521,-58.2358],'Florencio Varela':[-34.7966,-58.2760],
+  'Berazategui':[-34.7620,-58.2113],'Monte Grande':[-34.8272,-58.4620],'Ezeiza':[-34.8534,-58.5212],
+  'Cañuelas':[-35.0326,-58.7339],'Adrogué':[-34.8012,-58.3889],'Canning':[-34.8713,-58.5111],
+  'Morón':[-34.6559,-58.6167],'Villa Celina':[-34.6990,-58.4859],'Gregorio de Laferrere':[-34.7497,-58.5846],
+  'Isidro Casanova':[-34.7085,-58.5859],'Ciudad Evita':[-34.7294,-58.5266],'Ciudadela':[-34.6347,-58.5397],
+  'Caseros':[-34.6095,-58.5635],'El Palomar':[-34.6267,-58.5944],'José C. Paz':[-34.5151,-58.7662],
+  'Los Polvorines':[-34.4996,-58.6914],'Bella Vista':[-34.5637,-58.6904],'Ramos Mejía':[-34.6549,-58.5536],
+  'Haedo':[-34.6441,-58.5956],'Villa Bosch':[-34.5812,-58.5799],'Luján':[-34.5633,-59.1209],
+  'Jáuregui':[-34.5992,-59.1711],'General Rodríguez':[-34.6022,-58.9490],'San Justo':[-34.6874,-58.5633],
+  'La Tablada':[-34.6855,-58.5320],'Lomas del Mirador':[-34.6664,-58.5298],'Villa Madero':[-34.6866,-58.4942],
+  'Castelar':[-34.6555,-58.6452],'Ituzaingó':[-34.6570,-58.6754],'Mercedes':[-34.6510,-59.4306],
+  'Pilar':[-34.4663,-58.9154],'Merlo':[-34.6685,-58.7282],'Hurlingham':[-34.5896,-58.6276],
+  'San Miguel':[-34.5431,-58.7119],'General Pacheco':[-34.4530,-58.6430],'Tigre':[-34.4251,-58.5797],
+  'San Martín':[-34.5758,-58.5371],'San Andrés':[-34.5659,-58.5443],'Villa Ballester':[-34.5492,-58.5588],
+  'Martínez':[-34.4948,-58.5165],'Florida':[-34.5329,-58.4909],'Munro':[-34.5304,-58.5244],
+  'Boulogne':[-34.5012,-58.5672],'Grand Bourg':[-34.4835,-58.7288],'Villa Adelina':[-34.5203,-58.5445],
+  'San Fernando':[-34.4417,-58.5543],'Victoria':[-34.4563,-58.5466],'Rincón de Milberg':[-34.4172,-58.5979],
+  'El Talar':[-34.4721,-58.6540],'Benavídez':[-34.4152,-58.6868],'Tortuguitas':[-34.4707,-58.7590],
+  'Olivos':[-34.5106,-58.4964],'Vicente López':[-34.5281,-58.4738],'Acassuso':[-34.4753,-58.4966],
+  'Beccar':[-34.4641,-58.5348],'Virreyes':[-34.4605,-58.5722],'San Isidro':[-34.4708,-58.5286],
+  'Don Torcuato':[-34.4938,-58.6273],
+};
+LOCALITIES.forEach(l => { const c = COORDS[l.name]; if(c){ l.lat = c[0]; l.lng = c[1]; } });
+
 function normLoc(s){
   return (s || '').toString().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'')
     .replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
@@ -232,6 +266,24 @@ function daysForMatch(match){
   if(match.days && match.days.length) return match.days;
   return ZONE_DAYS[match.zone] || [1,2,3,4,5];
 }
+// Distancia en km (Haversine) y días de visita dentro de un radio del cliente.
+function toLatLng(x){
+  if(!x) return null;
+  return { lat: typeof x.lat === 'function' ? x.lat() : x.lat, lng: typeof x.lng === 'function' ? x.lng() : x.lng };
+}
+function haversineKm(a, b){
+  const R = 6371, toRad = x => x * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+  const s = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+// Días en que un vendedor pasa a menos de `km` de la ubicación del cliente.
+function daysWithin(coords, km){
+  if(!coords) return null;
+  const near = LOCALITIES.filter(l => l.lat != null && haversineKm(coords, { lat:l.lat, lng:l.lng }) <= km);
+  if(!near.length) return null;
+  return { days: [...new Set(near.flatMap(l => l.days))].sort((a, b) => a - b), places: near.map(l => l.name) };
+}
 
 /* ----- Fechas de retiro disponibles según los días de la zona ---------- */
 function isoDate(d){
@@ -271,7 +323,7 @@ function initPickup(){
   orderData.pickupDate = null;
   renderPickupChips([1,2,3,4,5]);
 }
-function updatePickupForAddress(components, formatted){
+function updatePickupForAddress(components, formatted, coords){
   const match = resolveZone(components, formatted);
   const note = document.getElementById('pickup-note');
   orderData.pickupDate = null;
@@ -279,12 +331,16 @@ function updatePickupForAddress(components, formatted){
   const zoneVendors = match ? (VENDORS_BY_ZONE[match.zone] || []) : [];
   orderData.zoneVendors = zoneVendors;
   orderData.vendor = zoneVendors[0] || null;   // el primero es quien pasa a retirar
-  if(match){
-    const vendor = orderData.vendor ? ` Te visita <strong>${orderData.vendor}</strong>.` : '';
+  const vendorTxt = orderData.vendor ? ` Te visita <strong>${orderData.vendor}</strong>.` : '';
+  const prox = daysWithin(coords, 5);          // días de visita a <=5 km del cliente
+  note.classList.remove('muted');
+  if(prox){
+    note.innerHTML = `Pasamos cerca tuyo los <strong>${diasTexto(prox.days)}</strong>.${vendorTxt} Elegí tu día:`;
+    renderPickupChips(prox.days);
+  } else if(match){
     const days = daysForMatch(match);
     const lugar = (match.days && match.days.length) ? match.name : `la Zona ${match.zone}`;
-    note.classList.remove('muted');
-    note.innerHTML = `Pasamos por <strong>${lugar}</strong> los <strong>${diasTexto(days)}</strong>.${vendor} Elegí tu día:`;
+    note.innerHTML = `Pasamos por <strong>${lugar}</strong> los <strong>${diasTexto(days)}</strong>.${vendorTxt} Elegí tu día:`;
     renderPickupChips(days);
   } else {
     note.classList.add('muted');
@@ -911,32 +967,38 @@ let chatData = { zone:null, vendor:null, motivo:null, day:null, days:[] };
 
 // Detecta la zona (y su vendedor) a partir de la dirección del formulario, y
 // muestra los días de visita para coordinar (misma lógica que el calendario).
-function updateChatZone(components, formatted){
+function updateChatZone(components, formatted, coords){
   const match = resolveZone(components, formatted);
   chatData.zone = match ? match.zone : null;
   const vendors = match ? (VENDORS_BY_ZONE[match.zone] || []) : [];
   chatData.vendor = vendors[0] || null;
   chatData.day = null;
-  chatData.days = match ? daysForMatch(match) : [];
-  renderChatDays(match);
+  const prox = daysWithin(coords, 5);
+  chatData.days = prox ? prox.days : (match ? daysForMatch(match) : []);
+  renderChatDays(match, prox);
 }
 
-// Días de visita en la ubicación del cliente (calendario de visitas).
-function renderChatDays(match){
+// Días de visita en la ubicación del cliente (radio de 5 km, misma lógica que el retiro).
+function renderChatDays(match, prox){
   const field = document.getElementById('chat-day-field');
   const note  = document.getElementById('chat-note');
   if(!field || !note) return;
   field.hidden = false;
-  const days = daysForMatch(match);
-  if(match){
+  if(prox){
+    note.classList.remove('muted');
+    note.innerHTML = `Pasamos cerca tuyo los <strong>${diasTexto(prox.days)}</strong>. Elegí un día para coordinar:`;
+    renderPickupChips(prox.days, 'chat-dates', iso => { chatData.day = iso; });
+  } else if(match){
+    const days = daysForMatch(match);
     const lugar = (match.days && match.days.length) ? match.name : `la Zona ${match.zone}`;
     note.classList.remove('muted');
     note.innerHTML = `Pasamos por <strong>${lugar}</strong> los <strong>${diasTexto(days)}</strong>. Elegí un día para coordinar:`;
+    renderPickupChips(days, 'chat-dates', iso => { chatData.day = iso; });
   } else {
     note.classList.add('muted');
     note.textContent = 'Elegí un día tentativo para coordinar la visita:';
+    renderPickupChips([1,2,3,4,5], 'chat-dates', iso => { chatData.day = iso; });
   }
-  renderPickupChips(days, 'chat-dates', iso => { chatData.day = iso; });
 }
 
 function sendVendorMessage(){
@@ -1092,8 +1154,9 @@ function setupAddressField(inputId, mapWrapId, opts = {}){
       if(place.formatted_address) input.value = place.formatted_address;
       orderData.address = input.value;
       fillPostalCode(mapWrapId, place.address_components);
-      if(mapWrapId === 'log-map') updatePickupForAddress(place.address_components, input.value);
-      else if(mapWrapId === 'chat-map') updateChatZone(place.address_components, input.value);
+      const c = toLatLng(place.geometry.location);
+      if(mapWrapId === 'log-map') updatePickupForAddress(place.address_components, input.value, c);
+      else if(mapWrapId === 'chat-map') updateChatZone(place.address_components, input.value, c);
     }
   });
   // El Enter lo maneja el propio widget de Autocomplete (elige la 1ª sugerencia);
@@ -1145,8 +1208,9 @@ function geocodeInto(text, mapWrapId, input){
       input.value = res[0].formatted_address;
       orderData.address = input.value;
       fillPostalCode(mapWrapId, res[0].address_components);
-      if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, input.value);
-      else if(mapWrapId === 'chat-map') updateChatZone(res[0].address_components, input.value);
+      const c = toLatLng(loc);
+      if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, input.value, c);
+      else if(mapWrapId === 'chat-map') updateChatZone(res[0].address_components, input.value, c);
     } else {
       alert('No encontramos esa dirección. Probá con más detalle.');
     }
@@ -1165,8 +1229,8 @@ function reverseGeocode(pos, mapWrapId){
                   : document.getElementById('reg-ship');
       if(input){ input.value = res[0].formatted_address; orderData.address = input.value; input.dataset.geo = '1'; }
       fillPostalCode(mapWrapId, res[0].address_components);
-      if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, res[0].formatted_address);
-      else if(mapWrapId === 'chat-map') updateChatZone(res[0].address_components, res[0].formatted_address);
+      if(mapWrapId === 'log-map') updatePickupForAddress(res[0].address_components, res[0].formatted_address, loc);
+      else if(mapWrapId === 'chat-map') updateChatZone(res[0].address_components, res[0].formatted_address, loc);
     }
   });
 }
