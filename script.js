@@ -75,6 +75,7 @@ const SERVICE_LABEL = { afilado:'AFILADO', reparacion:'REPARACIÓN' };
    Datos según la planilla "Días y zonas de visita de vendedores".        */
 const DIA_NOMBRE = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const DIA_ABREV  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 const LOCALITIES = [
   // ---- CABA ----
@@ -299,26 +300,60 @@ function nextPickupDates(allowedDays, count){
   }
   return dates;
 }
+// Calendario mensual: sólo las fechas de los días que pasa el vendedor quedan
+// disponibles (resaltadas); el resto se ve deshabilitado.
 function renderPickupChips(allowedDays, containerId, onPick){
   const cont = document.getElementById(containerId || 'pickup-dates');
   if(!cont) return;
-  cont.innerHTML = '';
-  nextPickupDates(allowedDays, 8).forEach(d => {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'pickup-chip'; b.dataset.iso = isoDate(d);
-    b.innerHTML = `<span class="pc-day">${DIA_ABREV[d.getDay()]}</span>`
-      + `<span class="pc-date">${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</span>`;
-    b.addEventListener('click', () => {
-      cont.querySelectorAll('.pickup-chip').forEach(c => c.classList.remove('sel'));
-      b.classList.add('sel');
-      if(onPick) onPick(b.dataset.iso); else orderData.pickupDate = b.dataset.iso;
+  const pick = onPick || (iso => { orderData.pickupDate = iso; });
+  const today = new Date(); today.setHours(0,0,0,0);
+  const minDate = new Date(today); minDate.setDate(minDate.getDate() + 1);   // desde mañana
+  const view = new Date(today.getFullYear(), today.getMonth(), 1);
+  let selected = null;
+
+  function render(){
+    cont.innerHTML = '';
+    const head = document.createElement('div'); head.className = 'calp-head';
+    const prev = document.createElement('button'); prev.type = 'button'; prev.className = 'calp-nav'; prev.textContent = '‹';
+    prev.setAttribute('aria-label', 'Mes anterior');
+    const title = document.createElement('span'); title.className = 'calp-title';
+    title.textContent = `${MESES[view.getMonth()]} ${view.getFullYear()}`;
+    const next = document.createElement('button'); next.type = 'button'; next.className = 'calp-nav'; next.textContent = '›';
+    next.setAttribute('aria-label', 'Mes siguiente');
+    prev.disabled = (view.getFullYear() === today.getFullYear() && view.getMonth() === today.getMonth());
+    prev.onclick = () => { view.setMonth(view.getMonth() - 1); render(); };
+    next.onclick = () => { view.setMonth(view.getMonth() + 1); render(); };
+    head.append(prev, title, next);
+    cont.appendChild(head);
+
+    const grid = document.createElement('div'); grid.className = 'calp-grid';
+    ['Lu','Ma','Mi','Ju','Vi','Sá','Do'].forEach(d => {
+      const s = document.createElement('span'); s.className = 'calp-dow'; s.textContent = d; grid.appendChild(s);
     });
-    cont.appendChild(b);
-  });
+    const firstDow = (new Date(view.getFullYear(), view.getMonth(), 1).getDay() + 6) % 7;   // Lunes = 0
+    for(let i = 0; i < firstDow; i++){ const e = document.createElement('span'); e.className = 'calp-cell empty'; grid.appendChild(e); }
+    const dim = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+    for(let day = 1; day <= dim; day++){
+      const date = new Date(view.getFullYear(), view.getMonth(), day);
+      const cell = document.createElement('button'); cell.type = 'button'; cell.className = 'calp-cell'; cell.textContent = day;
+      if(allowedDays.includes(date.getDay()) && date >= minDate){
+        const iso = isoDate(date);
+        cell.classList.add('avail');
+        if(selected === iso) cell.classList.add('sel');
+        cell.setAttribute('aria-label', `${day} de ${MESES[view.getMonth()]} (disponible)`);
+        cell.onclick = () => { selected = iso; pick(iso); render(); };
+      } else {
+        cell.disabled = true; cell.classList.add('off');
+      }
+      grid.appendChild(cell);
+    }
+    cont.appendChild(grid);
+  }
+  render();
 }
 function initPickup(){
   const note = document.getElementById('pickup-note');
-  note.textContent = 'Elegí el día de retiro. Al ingresar tu dirección te mostramos los días exactos de tu zona.';
+  note.textContent = 'Ingresá tu dirección para ver las fechas disponibles de retiro.';
   note.classList.add('muted');
   orderData.pickupDate = null;
   renderPickupChips([1,2,3,4,5]);
@@ -335,16 +370,14 @@ function updatePickupForAddress(components, formatted, coords){
   const prox = daysWithin(coords, 5);          // días de visita a <=5 km del cliente
   note.classList.remove('muted');
   if(prox){
-    note.innerHTML = `Pasamos cerca tuyo los <strong>${diasTexto(prox.days)}</strong>.${vendorTxt} Elegí tu día:`;
+    note.innerHTML = `Fechas de retiro disponibles cerca tuyo.${vendorTxt} Elegí una:`;
     renderPickupChips(prox.days);
   } else if(match){
-    const days = daysForMatch(match);
-    const lugar = (match.days && match.days.length) ? match.name : `la Zona ${match.zone}`;
-    note.innerHTML = `Pasamos por <strong>${lugar}</strong> los <strong>${diasTexto(days)}</strong>.${vendorTxt} Elegí tu día:`;
-    renderPickupChips(days);
+    note.innerHTML = `Fechas de retiro disponibles en tu zona.${vendorTxt} Elegí una:`;
+    renderPickupChips(daysForMatch(match));
   } else {
     note.classList.add('muted');
-    note.textContent = 'No detectamos tu zona. Elegí un día y lo coordinamos con un vendedor:';
+    note.textContent = 'Elegí una fecha de retiro y la coordinamos con un vendedor:';
     renderPickupChips([1,2,3,4,5]);
   }
 }
@@ -986,17 +1019,15 @@ function renderChatDays(match, prox){
   field.hidden = false;
   if(prox){
     note.classList.remove('muted');
-    note.innerHTML = `Pasamos cerca tuyo los <strong>${diasTexto(prox.days)}</strong>. Elegí un día para coordinar:`;
+    note.innerHTML = 'Fechas disponibles cerca tuyo. Elegí una para coordinar la visita:';
     renderPickupChips(prox.days, 'chat-dates', iso => { chatData.day = iso; });
   } else if(match){
-    const days = daysForMatch(match);
-    const lugar = (match.days && match.days.length) ? match.name : `la Zona ${match.zone}`;
     note.classList.remove('muted');
-    note.innerHTML = `Pasamos por <strong>${lugar}</strong> los <strong>${diasTexto(days)}</strong>. Elegí un día para coordinar:`;
-    renderPickupChips(days, 'chat-dates', iso => { chatData.day = iso; });
+    note.innerHTML = 'Fechas disponibles en tu zona. Elegí una para coordinar la visita:';
+    renderPickupChips(daysForMatch(match), 'chat-dates', iso => { chatData.day = iso; });
   } else {
     note.classList.add('muted');
-    note.textContent = 'Elegí un día tentativo para coordinar la visita:';
+    note.textContent = 'Elegí una fecha tentativa para coordinar la visita:';
     renderPickupChips([1,2,3,4,5], 'chat-dates', iso => { chatData.day = iso; });
   }
 }
