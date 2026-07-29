@@ -239,8 +239,8 @@ body{
 .sg-remove:hover{background:rgba(198,40,40,.1);}
 .sg-remove:active{transform:scale(.85);}
 
-.teeth-total{display:block;margin-top:6px;font-size:.9rem;font-weight:700;color:var(--red-dark);}
-.teeth-total:empty{display:none;}
+.teeth-total,.scrapers-total{display:block;margin-top:6px;font-size:.9rem;font-weight:700;color:var(--red-dark);}
+.teeth-total:empty,.scrapers-total:empty{display:none;}
 .grand-total{margin:2px 0 12px;font-size:1.05rem;font-weight:800;color:var(--ink);}
 
 .btn-add{display:inline-flex;align-items:center;gap:8px;
