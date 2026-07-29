@@ -355,6 +355,22 @@ textarea.box-input{font-family:'Outfit',sans-serif;resize:vertical;min-height:12
 .cs-option:focus{outline:none;background:#e7e9ef;box-shadow:inset 3px 0 0 var(--red);}
 .cs-option:active{background:#e7e9ef;}
 
+/* Galería de modelos (mechas) */
+.pselect-panel{
+  max-height:0;opacity:0;overflow:hidden;background:var(--surface);
+  border:0 solid #111;border-radius:0 0 8px 8px;
+  display:grid;grid-template-columns:repeat(3,1fr);
+  transition:max-height .3s var(--ease),opacity .25s,border-width .2s;
+}
+.cselect.open .pselect-panel{max-height:440px;opacity:1;overflow-y:auto;border-width:0 1.5px 1.5px;}
+.ps-option{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;
+  background:none;border:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.ps-option img{width:100%;height:72px;object-fit:contain;pointer-events:none;}
+.ps-option span{font-size:.72rem;font-weight:600;color:var(--ink);text-align:center;line-height:1.15;}
+.ps-option:hover{background:var(--field);}
+.ps-option:active{background:#e7e9ef;}
+.ps-option[aria-selected="true"]{background:rgba(158,27,27,.1);border-color:var(--red-dark);}
+
 /* ===== Carrito ===== */
 .cart-list{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
 .cart-item{

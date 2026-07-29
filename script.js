@@ -48,27 +48,39 @@ const PARTIDO_ZONE = {
          'mechas'  -> cantidad + modelo (dropdown animado)
          'simple'  -> cantidad + modelo (texto)                              */
 const IMG = 'imagenes/Herramientas/';
+/* type: 'sierra' -> cantidad + dientes + modelo (uno/varios)
+         'mechas' -> cantidad + modelo (galería de fotos)
+         'simple' -> cantidad + modelo (texto)
+   broken: muestra "¿Tiene dientes rotos?" (fresas, sierras y mechas de bisagra) */
 const TOOLS = [
-  { id:'melamina',  name:'Sierras para melamina', article:'la sierra',      type:'sierra', img:IMG+'SC%20melamina.png' },
-  { id:'madera',    name:'Sierras para madera',   article:'la sierra',      type:'sierra', img:IMG+'SC%20madera.png' },
-  { id:'fresas',    name:'Fresas',                article:'la fresa',       type:'simple', img:IMG+'Fresa.png' },
-  { id:'cuchillas', name:'Cuchillas',             article:'la cuchilla',    type:'simple', img:IMG+'Cuchillas.png' },
-  { id:'mechas',    name:'Mechas',                article:'la mecha',       type:'mechas', img:IMG+'Mechas.png' },
-  { id:'cabezales', name:'Cabezales',             article:'el cabezal',     type:'simple', img:IMG+'Cabezales.png' },
-  { id:'multiple',  name:'Sierras para múltiple', article:'la sierra',      type:'sierra', img:IMG+'SC%20Franzoi.png' },
-  { id:'diamante',  name:'Diamante',              article:'la herramienta', type:'simple', img:IMG+'Diamante.png' },
+  { id:'sierras',   name:'Sierras',   article:'la sierra',      type:'sierra', img:IMG+'SC%20melamina.png', broken:true },
+  { id:'fresas',    name:'Fresas',    article:'la fresa',       type:'simple', img:IMG+'Fresa.png',        broken:true },
+  { id:'mechas',    name:'Mechas',    article:'la mecha',       type:'mechas', img:IMG+'Mechas.png' },
+  { id:'cuchillas', name:'Cuchillas', article:'la cuchilla',    type:'simple', img:IMG+'Cuchillas.png' },
+  { id:'diamante',  name:'Diamante',  article:'la herramienta', type:'simple', img:IMG+'Diamante.png' },
+  { id:'cabezales', name:'Cabezales', article:'el cabezal',     type:'simple', img:IMG+'Cabezales.png' },
 ];
 
+// Modelos de mecha con su foto; el de bisagra habilita "¿Tiene dientes rotos?".
 const MECHA_MODELS = [
-  "Mecha para pasante",
-  "Mecha para ciego",
-  "Mecha tipo bisagra (Ø35)",
-  "Mecha helicoidal HSS",
-  "Mecha para CNC",
-  "Mecha punta de widia",
+  { name:'Mecha pasante',        img:IMG+'Mechas/1.png' },
+  { name:'Mecha ciega',          img:IMG+'Mechas/2.png' },
+  { name:'Mecha de bisagra',     img:IMG+'Mechas/3.png', broken:true },
+  { name:'Fresa espiral widia',  img:IMG+'Mechas/4.png' },
+  { name:'Fresa espiral negra',  img:IMG+'Mechas/5.png' },
+  { name:'Fresa espiral color',  img:IMG+'Mechas/6.png' },
 ];
 
 const SERVICE_LABEL = { afilado:'AFILADO', reparacion:'REPARACIÓN' };
+
+// "¿Qué haces con la sierra?" -> define qué campos pide el detalle de sierras.
+const USO_OPTIONS = [
+  'Corto melamina, MDF, aglomerado, PVC y Aluminio',
+  'Corto madera',
+  'Abro madera',
+];
+const USO_KEY = { [USO_OPTIONS[0]]:'melamina', [USO_OPTIONS[1]]:'madera', [USO_OPTIONS[2]]:'abro' };
+const USO_SHORT = { melamina:'Melamina/MDF/PVC/Alu', madera:'Corta madera', abro:'Abre madera' };
 
 /* ============ ZONAS Y DÍAS DE VISITA DE VENDEDORES =====================
    days: 1=Lunes ... 5=Viernes (coinciden con Date.getDay()).
@@ -543,11 +555,18 @@ function selectTool(id){
   goTo('screen-detail');
 }
 
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+const toolSingular = t => (t.article || '').split(' ')[1] || t.name.toLowerCase();
+
 /* ----- Render dinámico del detalle según herramienta y servicio -------- */
 function renderDetail(){
   const t = current.tool, s = current.service;
   current.dirty = false;          // formulario recién generado = sin cambios
   current.draft = {};             // evita arrastrar el modelo elegido antes
+  current.broken = 'no';
+  current.sierraUso = null;       // qué hace con la sierra: melamina / madera / abro
+  current.sierraMode = 'uno';
+  current.sierraGroups = [{ qty:'1', teeth:'', scrapers:'', broken:'', model:'' }];
   document.getElementById('detail-title').textContent = SERVICE_LABEL[s];
   document.getElementById('detail-tool').textContent = t.name;
   const photo = document.getElementById('detail-photo');
@@ -555,32 +574,161 @@ function renderDetail(){
   const box = document.getElementById('detail-fields');
   box.innerHTML = '';
 
-  // ----- Sierras: pregunta 1 modelo / varios + grupos repetibles ---------
+  // ----- Mechas: cantidad + galería de modelos; la de bisagra habilita dientes rotos
+  if(t.type === 'mechas'){
+    box.appendChild(fieldHTML(`Cantidad de ${t.name.toLowerCase()}`,
+      `<input type="number" min="1" value="1" id="d-qty" class="box-input half" inputmode="numeric">`, 'd-qty'));
+    box.appendChild(buildPhotoSelect(`Modelo de ${t.name.toLowerCase()}`, MECHA_MODELS, onMechaModel));
+    const bsec = document.createElement('div'); bsec.id = 'broken-section'; box.appendChild(bsec);
+    return;
+  }
+
+  // ----- Sierras: "¿Qué haces con la sierra?" arriba; dientes rotos al final
   if(t.type === 'sierra'){
-    current.sierraMode = 'uno';
-    current.sierraGroups = [{ qty:'1', teeth:'', model:'' }];
-    const section = document.createElement('div');
-    section.id = 'sierra-section';
-    box.appendChild(section);
+    box.appendChild(buildCustomSelect('¿Qué haces con la sierra?', USO_OPTIONS, onSierraUso, 'Elegí una opción'));
+    const body = document.createElement('div'); body.id = 'detail-body'; box.appendChild(body);
     renderSierraSection();
     return;
   }
 
-  // ----- Mechas / simples: cantidad + modelo ------------------------------
-  box.appendChild(fieldHTML(`Cantidad de ${t.name.toLowerCase()}`,
-    `<input type="number" min="1" value="1" id="d-qty" class="box-input half" inputmode="numeric">`, 'd-qty'));
-
-  if(t.type === 'mechas'){
-    box.appendChild(buildCustomSelect(`Modelo de ${t.name.toLowerCase()}`, MECHA_MODELS, null, 'Seleccioná un modelo'));
-  } else {
+  // ----- Fresas: cantidad + modelo; "¿Tiene dientes rotos?" al final
+  if(t.broken){
+    box.appendChild(fieldHTML(`Cantidad de ${t.name.toLowerCase()}`,
+      `<input type="number" min="1" value="1" id="d-qty" class="box-input half" inputmode="numeric">`, 'd-qty'));
     box.appendChild(fieldHTML(`Modelo de ${t.name.toLowerCase()}`,
       `<input type="text" id="d-model" class="box-input" placeholder="Ej: marca / medida">`, 'd-model'));
+    const bsec = document.createElement('div'); bsec.id = 'broken-section'; box.appendChild(bsec);
+    renderBrokenSection();
+    return;
+  }
+
+  // ----- Simples (cuchillas, diamante, cabezales): cantidad + modelo -------
+  box.appendChild(fieldHTML(`Cantidad de ${t.name.toLowerCase()}`,
+    `<input type="number" min="1" value="1" id="d-qty" class="box-input half" inputmode="numeric">`, 'd-qty'));
+  box.appendChild(fieldHTML(`Modelo de ${t.name.toLowerCase()}`,
+    `<input type="text" id="d-model" class="box-input" placeholder="Ej: marca / medida">`, 'd-model'));
+}
+
+/* ----- Pregunta "¿Tiene dientes rotos?" (Sí / No) --------------------- */
+function brokenQuestion(){
+  const q = document.createElement('div');
+  q.className = 'field';
+  q.innerHTML = `<label>¿Tiene dientes rotos?</label>
+    <div class="seg" role="group" aria-label="¿Tiene dientes rotos?">
+      <button type="button" class="seg-btn ${current.broken==='si'?'active':''}" data-b="si" aria-pressed="${current.broken==='si'}">Sí</button>
+      <button type="button" class="seg-btn ${current.broken==='no'?'active':''}" data-b="no" aria-pressed="${current.broken==='no'}">No</button>
+    </div>`;
+  q.querySelectorAll('.seg-btn').forEach(b => b.addEventListener('click', () => setBroken(b.dataset.b)));
+  return q;
+}
+function setBroken(val){
+  if(val === current.broken) return;
+  current.broken = val;
+  current.dirty = true;
+  if(current.tool.type === 'mechas'){ renderMechaBroken(); return; }
+  const box = document.getElementById('detail-fields');
+  box.replaceChild(brokenQuestion(), box.firstChild);   // refresca el estado del toggle
+  renderToolBody();
+}
+// Cuerpo del detalle de sierras/fresas según "¿dientes rotos?"
+function renderToolBody(){
+  const body = document.getElementById('detail-body');
+  if(!body) return;
+  body.innerHTML = '';
+  if(current.broken === 'si'){ renderBrokenGroups(body); return; }
+  if(current.tool.type === 'sierra'){ renderSierraSection(body); return; }
+  const t = current.tool;   // fresas (simple) normal
+  body.appendChild(fieldHTML(`Cantidad de ${t.name.toLowerCase()}`,
+    `<input type="number" min="1" value="1" id="d-qty" class="box-input half" inputmode="numeric">`, 'd-qty'));
+  body.appendChild(fieldHTML(`Modelo de ${t.name.toLowerCase()}`,
+    `<input type="text" id="d-model" class="box-input" placeholder="Ej: marca / medida">`, 'd-model'));
+}
+
+/* ----- Recuadros de "dientes rotos" (repetibles) --------------------- */
+function renderBrokenGroups(container){
+  const t = current.tool, sing = toolSingular(t);
+  container.innerHTML = '';
+  current.brokenGroups.forEach((g, i) => container.appendChild(buildBrokenGroup(g, i)));
+  const add = document.createElement('button');
+  add.type = 'button'; add.className = 'btn-add'; add.id = 'add-broken';
+  add.innerHTML = `<span>+</span> ${sing} nueva`;
+  add.addEventListener('click', addBrokenGroup);
+  container.appendChild(add);
+  updateBrokenTotal();
+}
+function buildBrokenGroup(g, i){
+  const t = current.tool, sing = toolSingular(t);
+  const varios = current.brokenGroups.length > 1;
+  const wrap = document.createElement('div');
+  wrap.className = 'sierra-group boxed';
+  wrap.innerHTML =
+    `<div class="sg-head"><span class="sg-title">${cap(sing)} ${i+1}</span>${varios ? '<button type="button" class="sg-remove" aria-label="Quitar">✕</button>' : ''}</div>
+     <div class="field"><label>Cantidad de ${t.name.toLowerCase()} con dientes rotos</label>
+       <input type="number" min="1" class="box-input half b-qty" inputmode="numeric"></div>
+     <div class="field"><label>Cantidad de dientes rotos</label>
+       <input type="number" min="1" class="box-input half b-teeth" inputmode="numeric">
+       <span class="teeth-total" aria-live="polite"></span></div>`;
+  const qtyIn = wrap.querySelector('.b-qty'), teethIn = wrap.querySelector('.b-teeth'), totalEl = wrap.querySelector('.teeth-total');
+  qtyIn.value = g.qty ?? ''; teethIn.value = g.teeth ?? '';
+  const compute = () => { const q = +qtyIn.value || 0, d = +teethIn.value || 0; totalEl.textContent = (q > 0 && d > 0) ? `= ${q * d} dientes rotos en total` : ''; };
+  const onInput = () => { g.qty = qtyIn.value; g.teeth = teethIn.value; compute(); current.dirty = true; updateBrokenTotal(); };
+  qtyIn.addEventListener('input', onInput); teethIn.addEventListener('input', onInput);
+  const rm = wrap.querySelector('.sg-remove'); if(rm) rm.addEventListener('click', () => removeBrokenGroup(i));
+  compute();
+  return wrap;
+}
+function addBrokenGroup(){
+  current.brokenGroups.push({ qty:'1', teeth:'' });
+  current.dirty = true;
+  renderBrokenGroups(brokenBody());
+  const groups = document.querySelectorAll('.sierra-group');
+  groups[groups.length - 1]?.querySelector('.b-qty')?.focus();
+}
+function removeBrokenGroup(i){
+  if(current.brokenGroups.length <= 1) return;
+  current.brokenGroups.splice(i, 1);
+  current.dirty = true;
+  renderBrokenGroups(brokenBody());
+}
+function brokenBody(){
+  return document.getElementById('detail-body') || document.querySelector('#broken-section #detail-body');
+}
+function updateBrokenTotal(){
+  const cont = brokenBody(); if(!cont) return;
+  const total = current.brokenGroups.reduce((s, g) => { const q = +g.qty || 0, d = +g.teeth || 0; return s + (q > 0 && d > 0 ? q * d : 0); }, 0);
+  let el = cont.querySelector('.grand-total');
+  if(total > 0 && current.brokenGroups.length > 1){
+    if(!el){ el = document.createElement('p'); el.className = 'grand-total'; cont.appendChild(el); }
+    el.textContent = `Total de dientes rotos: ${total}`;
+  } else if(el){ el.remove(); }
+}
+
+/* ----- Mechas: modelo (galería) y dientes rotos si es de bisagra ------ */
+function onMechaModel(m){
+  current.draft.model = m.name;
+  current.draft.modelImg = m.img;
+  current.draft.modelBroken = !!m.broken;
+  current.dirty = true;
+  if(!m.broken){ current.broken = 'no'; }
+  renderMechaBroken();
+}
+function renderMechaBroken(){
+  const sec = document.getElementById('broken-section');
+  if(!sec) return;
+  sec.innerHTML = '';
+  if(!current.draft.modelBroken) return;
+  sec.appendChild(brokenQuestion());
+  if(current.broken === 'si'){
+    const f = fieldHTML('Cantidad de dientes rotos',
+      `<input type="number" min="1" id="d-broken-teeth" class="box-input half" inputmode="numeric">`, 'd-broken-teeth');
+    sec.appendChild(f);
   }
 }
 
 /* ----- Sección de sierras (1 modelo o varios) -------------------------- */
-function renderSierraSection(){
-  const section = document.getElementById('sierra-section');
+function renderSierraSection(section){
+  section = section || document.getElementById('detail-body');
+  if(!section) return;
   const s = current.service;
   const teethLabel = s === 'reparacion' ? 'Cantidad de dientes a reparar' : 'Cantidad de dientes';
   section.innerHTML = '';
@@ -677,7 +825,7 @@ function addSierraGroup(){
   current.dirty = true;
   renderSierraSection();
   // enfoca la cantidad del recuadro recién agregado
-  const groups = document.querySelectorAll('#sierra-section .sierra-group');
+  const groups = document.querySelectorAll('#detail-body .sierra-group');
   groups[groups.length - 1]?.querySelector('.g-qty')?.focus();
 }
 
@@ -689,7 +837,7 @@ function removeSierraGroup(i){
 }
 
 function updateGrandTotal(){
-  const section = document.getElementById('sierra-section');
+  const section = document.getElementById('detail-body');
   if(!section) return;
   const total = current.sierraGroups.reduce((sum, g) => {
     const q = parseInt(g.qty || '0', 10), d = parseInt(g.teeth || '0', 10);
@@ -792,11 +940,66 @@ document.addEventListener('click', e => {
     });
 });
 
+/* ----- Selector de modelo con galería de fotos (mechas) --------------- */
+function buildPhotoSelect(labelText, models, onSelect){
+  const uid = 'ps' + (++csSeq);
+  const div = document.createElement('div');
+  div.className = 'field';
+  div.innerHTML = `<label id="${uid}-lbl">${labelText}</label>`;
+  const sel = document.createElement('div');
+  sel.className = 'cselect pselect';
+  sel.innerHTML = `
+    <div class="cselect-trigger" role="button" tabindex="0" aria-haspopup="listbox"
+         aria-expanded="false" aria-labelledby="${uid}-lbl ${uid}-val">
+      <span class="cs-value placeholder" id="${uid}-val">Seleccioná un modelo</span>
+      <span class="cs-arrow" aria-hidden="true">▾</span>
+    </div>
+    <div class="pselect-panel" role="listbox" aria-labelledby="${uid}-lbl">
+      ${models.map((m, i) => `<button type="button" class="ps-option" role="option" aria-selected="false" data-i="${i}">
+        <img src="${m.img}" alt="${m.name}" loading="lazy" onerror="this.style.display='none'">
+        <span>${m.name}</span></button>`).join('')}
+    </div>`;
+  const trigger = sel.querySelector('.cselect-trigger');
+  const value = sel.querySelector('.cs-value');
+  const toggle = () => { const open = sel.classList.toggle('open'); trigger.setAttribute('aria-expanded', open); };
+  const closeIt = () => { sel.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); };
+  trigger.addEventListener('click', toggle);
+  trigger.addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown'){ e.preventDefault(); toggle(); }
+    else if(e.key === 'Escape'){ closeIt(); }
+  });
+  sel.querySelectorAll('.ps-option').forEach(op => {
+    op.addEventListener('click', () => {
+      const m = models[+op.dataset.i];
+      value.textContent = m.name; value.classList.remove('placeholder');
+      sel.querySelectorAll('.ps-option').forEach(o => o.setAttribute('aria-selected', 'false'));
+      op.setAttribute('aria-selected', 'true');
+      onSelect(m); closeIt();
+    });
+  });
+  div.appendChild(sel);
+  return div;
+}
+
 /* ----- Leer el detalle y armar los ítems (devuelve array o null) ------- */
 function readDetail(){
   const t = current.tool, s = current.service;
 
-  // Sierras: un ítem por cada recuadro (modelo)
+  // Con dientes rotos (sierras / fresas): un ítem por recuadro
+  if(t.broken && current.broken === 'si'){
+    const items = [];
+    for(let i = 0; i < current.brokenGroups.length; i++){
+      const g = current.brokenGroups[i];
+      const qty = parseInt(g.qty || '0', 10);
+      const teeth = parseInt(g.teeth || '0', 10);
+      if(!qty || qty < 1){ alert(`Ingresá la cantidad en el recuadro ${i + 1}.`); return null; }
+      if(!teeth || teeth < 1){ alert(`Ingresá la cantidad de dientes rotos en el recuadro ${i + 1}.`); return null; }
+      items.push({ service:s, toolId:t.id, tool:t.name, quantity:qty, brokenTeeth:teeth, totalBroken:teeth * qty, broken:true });
+    }
+    return items;
+  }
+
+  // Sierras sin dientes rotos: un ítem por cada recuadro (modelo)
   if(t.type === 'sierra'){
     const items = [];
     for(let i = 0; i < current.sierraGroups.length; i++){
@@ -818,17 +1021,26 @@ function readDetail(){
     return items;
   }
 
-  // Mechas / simples: un único ítem
+  // Mechas
+  if(t.type === 'mechas'){
+    const qty = parseInt(document.getElementById('d-qty')?.value || '0', 10);
+    if(!qty || qty < 1){ alert('Ingresá una cantidad válida.'); return null; }
+    if(!current.draft.model){ alert('Elegí un modelo.'); return null; }
+    const item = { service:s, toolId:t.id, tool:t.name, quantity:qty, model:current.draft.model };
+    if(current.draft.modelBroken && current.broken === 'si'){
+      const bt = parseInt(document.getElementById('d-broken-teeth')?.value || '0', 10);
+      if(!bt || bt < 1){ alert('Ingresá la cantidad de dientes rotos.'); return null; }
+      item.brokenTeeth = bt; item.totalBroken = bt * qty; item.broken = true;
+    }
+    return [item];
+  }
+
+  // Simples (cuchillas, diamante, cabezales) y fresas sin dientes rotos
   const qty = parseInt(document.getElementById('d-qty')?.value || '0', 10);
   if(!qty || qty < 1){ alert('Ingresá una cantidad válida.'); return null; }
   const item = { service:s, toolId:t.id, tool:t.name, quantity:qty };
-  if(t.type === 'mechas'){
-    if(!current.draft.model){ alert('Elegí un modelo.'); return null; }
-    item.model = current.draft.model;
-  } else {
-    const m = document.getElementById('d-model')?.value.trim();
-    if(m) item.model = m;
-  }
+  const m = document.getElementById('d-model')?.value.trim();
+  if(m) item.model = m;
   return [item];
 }
 
@@ -837,7 +1049,7 @@ function addToCart(){
   if(!items) return;
   cart.push(...items);
   refreshCartBadge(true);
-  flash(items.length > 1 ? `${items.length} sierras agregadas ✓` : 'Agregado al carrito ✓');
+  flash(items.length > 1 ? `${items.length} ítems agregados ✓` : 'Agregado al carrito ✓');
   renderDetail();               // limpia el formulario
 }
 
@@ -874,7 +1086,9 @@ function renderCart(){
   cart.forEach((it, i) => {
     const row = document.createElement('div');
     row.className = 'cart-item';
-    const teethTxt = it.teeth ? `${it.totalTeeth} dientes (${it.teeth}×${it.quantity})` : null;
+    const teethTxt = it.teeth ? `${it.totalTeeth} dientes (${it.teeth}×${it.quantity})`
+      : (it.broken && it.brokenTeeth) ? `${it.totalBroken} dientes rotos (${it.brokenTeeth}×${it.quantity})`
+      : null;
     const sub = [SERVICE_LABEL[it.service], it.model, teethTxt]
       .filter(Boolean).join(' · ');
     row.innerHTML = `
